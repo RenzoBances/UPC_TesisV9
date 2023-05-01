@@ -659,12 +659,12 @@ if authentication_status:
                                         ##         🏃‍♀️ SISTEMA PREDICCIÓN EJERCICIO (FIN)          ##
                                         ############################################################
 
-                                        right_arm_x1 = int(landmarks[12].x * width) #right_elbow_angle
-                                        right_arm_x2 = int(landmarks[14].x * width)
-                                        right_arm_x3 = int(landmarks[16].x * width)
-                                        right_arm_y1 = int(landmarks[12].y * height)
-                                        right_arm_y2 = int(landmarks[14].y * height)
-                                        right_arm_y3 = int(landmarks[16].y * height)  
+                                        right_arm_x1 = int(landmarks[11].x * width) #right_elbow_angle
+                                        right_arm_x2 = int(landmarks[13].x * width)
+                                        right_arm_x3 = int(landmarks[15].x * width)
+                                        right_arm_y1 = int(landmarks[11].y * height)
+                                        right_arm_y2 = int(landmarks[13].y * height)
+                                        right_arm_y3 = int(landmarks[15].y * height)  
 
                                         right_arm_p1 = np.array([right_arm_x1, right_arm_y1])
                                         right_arm_p2 = np.array([right_arm_x2, right_arm_y2])
@@ -679,12 +679,12 @@ if authentication_status:
                                         right_elbow_angle = calculate_angleacos(right_arm_l1, right_arm_l2, right_arm_l3)
                                         print(f'right_elbow_angle: {right_elbow_angle}')
 
-                                        left_arm_x1 = int(landmarks[11].x * width) #left_elbow_angle
-                                        left_arm_x2 = int(landmarks[13].x * width)
-                                        left_arm_x3 = int(landmarks[15].x * width)
-                                        left_arm_y1 = int(landmarks[11].y * height)
-                                        left_arm_y2 = int(landmarks[13].y * height)
-                                        left_arm_y3 = int(landmarks[15].y * height)  
+                                        left_arm_x1 = int(landmarks[12].x * width) #left_elbow_angle
+                                        left_arm_x2 = int(landmarks[14].x * width)
+                                        left_arm_x3 = int(landmarks[16].x * width)
+                                        left_arm_y1 = int(landmarks[12].y * height)
+                                        left_arm_y2 = int(landmarks[14].y * height)
+                                        left_arm_y3 = int(landmarks[16].y * height)  
 
                                         left_arm_p1 = np.array([left_arm_x1, left_arm_y1])
                                         left_arm_p2 = np.array([left_arm_x2, left_arm_y2])
@@ -700,12 +700,12 @@ if authentication_status:
                                         print(f'left_elbow_angle: {left_elbow_angle}')
 
 
-                                        right_shoul_x1 = int(landmarks[14].x * width) #right_shoulder_angle
-                                        right_shoul_x2 = int(landmarks[12].x * width)
-                                        right_shoul_x3 = int(landmarks[24].x * width)
-                                        right_shoul_y1 = int(landmarks[14].y * height)
-                                        right_shoul_y2 = int(landmarks[12].y * height)
-                                        right_shoul_y3 = int(landmarks[24].y * height)  
+                                        right_shoul_x1 = int(landmarks[13].x * width) #right_shoulder_angle
+                                        right_shoul_x2 = int(landmarks[11].x * width)
+                                        right_shoul_x3 = int(landmarks[23].x * width)
+                                        right_shoul_y1 = int(landmarks[13].y * height)
+                                        right_shoul_y2 = int(landmarks[11].y * height)
+                                        right_shoul_y3 = int(landmarks[23].y * height)  
 
                                         right_shoul_p1 = np.array([right_shoul_x1, right_shoul_y1])
                                         right_shoul_p2 = np.array([right_shoul_x2, right_shoul_y2])
@@ -719,12 +719,12 @@ if authentication_status:
                                         right_shoulder_angle = calculate_angleacos(right_shoul_l1, right_shoul_l2, right_shoul_l3)
                                         print(f'right_shoulder_angle: {right_shoulder_angle}')
 
-                                        right_ankle_x1 = int(landmarks[26].x * width) #right_ankle_angle
-                                        right_ankle_x2 = int(landmarks[28].x * width)
-                                        right_ankle_x3 = int(landmarks[32].x * width)
-                                        right_ankle_y1 = int(landmarks[26].y * height)
-                                        right_ankle_y2 = int(landmarks[28].y * height)
-                                        right_ankle_y3 = int(landmarks[32].y * height)  
+                                        right_ankle_x1 = int(landmarks[25].x * width) #right_ankle_angle
+                                        right_ankle_x2 = int(landmarks[27].x * width)
+                                        right_ankle_x3 = int(landmarks[31].x * width)
+                                        right_ankle_y1 = int(landmarks[25].y * height)
+                                        right_ankle_y2 = int(landmarks[27].y * height)
+                                        right_ankle_y3 = int(landmarks[31].y * height)  
 
                                         right_ankle_p1 = np.array([right_ankle_x1, right_ankle_y1])
                                         right_ankle_p2 = np.array([right_ankle_x2, right_ankle_y2])
@@ -738,12 +738,12 @@ if authentication_status:
                                         right_ankle_angle = calculate_angleacos(right_ankle_l1, right_ankle_l2, right_ankle_l3)
                                         print(f'right_ankle_angle: {right_ankle_angle}')
 
-                                        right_torso_x1 = int(landmarks[12].x * width) #right_hip_angle
-                                        right_torso_x2 = int(landmarks[24].x * width)
-                                        right_torso_x3 = int(landmarks[26].x * width) 
-                                        right_torso_y1 = int(landmarks[12].y * height)
-                                        right_torso_y2 = int(landmarks[24].y * height)
-                                        right_torso_y3 = int(landmarks[26].y * height) 
+                                        right_torso_x1 = int(landmarks[11].x * width) #right_hip_angle
+                                        right_torso_x2 = int(landmarks[23].x * width)
+                                        right_torso_x3 = int(landmarks[25].x * width) 
+                                        right_torso_y1 = int(landmarks[11].y * height)
+                                        right_torso_y2 = int(landmarks[23].y * height)
+                                        right_torso_y3 = int(landmarks[25].y * height) 
 
                                         right_torso_p1 = np.array([right_torso_x1, right_torso_y1])
                                         right_torso_p2 = np.array([right_torso_x2, right_torso_y2])
@@ -757,12 +757,12 @@ if authentication_status:
                                         right_hip_angle = calculate_angleacos(right_torso_l1, right_torso_l2, right_torso_l3)
                                         print(f'right_hip_angle: {right_hip_angle}')
 
-                                        right_leg_x1 = int(landmarks[24].x * width) #right_knee_angle
-                                        right_leg_x2 = int(landmarks[26].x * width)
-                                        right_leg_x3 = int(landmarks[28].x * width) 
-                                        right_leg_y1 = int(landmarks[24].y * height)
-                                        right_leg_y2 = int(landmarks[26].y * height)
-                                        right_leg_y3 = int(landmarks[28].y * height)
+                                        right_leg_x1 = int(landmarks[23].x * width) #right_knee_angle
+                                        right_leg_x2 = int(landmarks[25].x * width)
+                                        right_leg_x3 = int(landmarks[27].x * width) 
+                                        right_leg_y1 = int(landmarks[23].y * height)
+                                        right_leg_y2 = int(landmarks[25].y * height)
+                                        right_leg_y3 = int(landmarks[27].y * height)
 
                                         right_leg_p1 = np.array([right_leg_x1, right_leg_y1])
                                         right_leg_p2 = np.array([right_leg_x2, right_leg_y2])
@@ -776,12 +776,12 @@ if authentication_status:
                                         right_knee_angle = calculate_angleacos(right_leg_l1, right_leg_l2, right_leg_l3)
                                         print(f'right_knee_angle: {right_knee_angle}')
 
-                                        left_leg_x1 = int(landmarks[23].x * width) #left_knee_angle
-                                        left_leg_x2 = int(landmarks[25].x * width)
-                                        left_leg_x3 = int(landmarks[27].x * width) 
-                                        left_leg_y1 = int(landmarks[23].y * height)
-                                        left_leg_y2 = int(landmarks[25].y * height)
-                                        left_leg_y3 = int(landmarks[27].y * height)
+                                        left_leg_x1 = int(landmarks[24].x * width) #left_knee_angle
+                                        left_leg_x2 = int(landmarks[26].x * width)
+                                        left_leg_x3 = int(landmarks[28].x * width) 
+                                        left_leg_y1 = int(landmarks[24].y * height)
+                                        left_leg_y2 = int(landmarks[26].y * height)
+                                        left_leg_y3 = int(landmarks[28].y * height)
 
                                         left_leg_p1 = np.array([left_leg_x1, left_leg_y1])
                                         left_leg_p2 = np.array([left_leg_x2, left_leg_y2])
