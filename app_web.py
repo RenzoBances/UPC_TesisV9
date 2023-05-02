@@ -204,6 +204,7 @@ def print_sidebar_main(id_exercise):
 def get_trainer_coords(id_exercise, id_trainer):
     
     df = pd.read_csv("02. trainers/" + id_exercise + "/costs/" + id_exercise + "_puntos_trainer"+str(id_trainer)+".csv")
+    df = pd.read_csv("02. trainers/" + id_exercise + "/costs/" + id_exercise + "_puntos_trainer"+str(id_trainer)+".csv")
     if id_exercise == "bird_dog":
         df = df.iloc[: , :-6]
     else:
@@ -566,8 +567,8 @@ if authentication_status:
                     placeholder_trainer.image("./01. webapp_img/warm_up.gif")
                     stframe.image("./01. webapp_img/warm_up.gif")
                     mstart = "Por favor asegurese que su dispositivo pueda ver su cuerpo completo en su pantalla"
-                    speak_t0 = threading.Thread(target=speak, args=(mstart,))
-                    speak_t0.start()
+                    speak_start_msg = threading.Thread(target=speak, args=(mstart,))
+                    speak_start_msg.start()
                     time.sleep(2)
                     for secs in range(N,0,-1):
                         ss = secs%60
@@ -802,10 +803,12 @@ if authentication_status:
                                         pose_trainer_cost_min, pose_trainer_cost_max = get_cost_pose_trainer(id_exercise, st.session_state.count_pose+1)
                                         pose_user_cost = UpcSystemCost.get_cost_pose_user(df_trainer_coords, results, st.session_state.count_pose+1)
                                         
-                                        color_validation = (255, 0, 0) #Azul - dentro del rango
-                                        message_validation = "Correct Position"
+                                        if (pose_user_cost >= pose_trainer_cost_min) and (pose_user_cost <= pose_trainer_cost_max):
 
-                                        if pose_user_cost < pose_trainer_cost_min or pose_user_cost > pose_trainer_cost_min:
+                                            color_validation = (255, 0, 0) #Azul - dentro del rango
+                                            message_validation = "Correct Position"
+
+                                        else:
                                             color_validation = (0, 0, 255) #Rojo - fuera del rango
                                             message_validation = "Wrong Position"
 
@@ -877,8 +880,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
+                                                speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage1.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -936,8 +939,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t2 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t2.start()
+                                                speak_stage2 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage2.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1001,8 +1004,8 @@ if authentication_status:
                                                 start = 0
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
+                                                speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage3.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1053,7 +1056,7 @@ if authentication_status:
 
                                                 # ************************ INICIO SISTEMA DE ECOMENDACIONES ************************ #
                                                 
-                                                if start+1 == 1 or start+1 == 3:
+                                                if st.session_state.count_pose+1 == 1 or st.session_state.count_pose+1 == 3:
                                                 
                                                     if right_elbow_angle > right_elbow_angle_in+desv_right_elbow_angle_in:
 
@@ -1089,7 +1092,7 @@ if authentication_status:
                                                     final_rec = rec_right_elbow_angle+rec_right_hip_angle+rec_right_knee_angle
                                                     print(final_rec)
 
-                                                elif start+1 == 2:
+                                                elif st.session_state.count_pose+1 == 2:
 
                                                     if right_elbow_angle > right_elbow_angle_in+desv_right_elbow_angle_in:
 
@@ -1126,41 +1129,41 @@ if authentication_status:
 
                                                 if final_rec != "":
 
-                                                    if start+1 == 1:
+                                                    if st.session_state.count_pose+1 == 1:
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
-                                                            speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t4.start()
+                                                            speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                            speak_rec.start()
 
-                                                    elif start+1 == 2:
-
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
-                                                            except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
-
-                                                    elif start+1 == 3:
+                                                    elif st.session_state.count_pose+1 == 2:
 
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
+                                                                if not speak_stage1.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
+
+                                                    elif st.session_state.count_pose+1 == 3:
+
+                                                        try:
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
+                                                        except:
+                                                            try:
+                                                                if not speak_stage2.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+                                                            except:
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                 # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ #                                    
                                         #Ejerccio curlup
@@ -1193,8 +1196,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
+                                                speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage1.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1252,8 +1255,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t2 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t2.start()
+                                                speak_stage2 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage2.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1317,8 +1320,8 @@ if authentication_status:
                                                 start = 0
                                                 ###########################################
                                                 update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
+                                                speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage3.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1451,39 +1454,39 @@ if authentication_status:
 
                                                     if start+1 == 1:
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
-                                                            speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t4.start()
+                                                            speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                            speak_rec.start()
 
                                                     elif start+1 == 2:
 
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
+                                                                if not speak_stage1.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                     elif start+1 == 3:
 
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
+                                                                if not speak_stage2.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                 # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ #
                                         #Ejerccio Frontplank
@@ -1517,8 +1520,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
+                                                speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage1.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1593,8 +1596,8 @@ if authentication_status:
                                                 start = 0
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
+                                                speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage3.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1726,39 +1729,39 @@ if authentication_status:
 
                                                     if start+1 == 1:
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
-                                                            speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t4.start()
+                                                            speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                            speak_rec.start()
 
                                                     elif start+1 == 2:
 
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
+                                                                if not speak_stage1.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                     elif start+1 == 3:
 
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
+                                                                if not speak_stage2.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                 # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ # 
                                         
@@ -1792,8 +1795,8 @@ if authentication_status:
                                                 start +=1
                                                 ###########################################
                                                 update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
+                                                speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage1.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1850,8 +1853,8 @@ if authentication_status:
                                                 start +=1
                                                 ###########################################
                                                 update_dashboard()
-                                                speak_t2 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t2.start()
+                                                speak_stage2 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage2.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1912,8 +1915,8 @@ if authentication_status:
                                                 start +=1
                                                 ###########################################
                                                 update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
+                                                speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage3.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -1968,8 +1971,8 @@ if authentication_status:
                                                 start +=1
                                                 ###########################################
                                                 update_dashboard()
-                                                speak_t4 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t4.start()
+                                                speak_stage4 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage4.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -2033,8 +2036,8 @@ if authentication_status:
                                                 start = 0
                                                 ###########################################
                                                 update_dashboard()
-                                                speak_t5 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t5.start()
+                                                speak_stage5 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage5.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -2085,7 +2088,7 @@ if authentication_status:
 
                                                 # ************************ INICIO SISTEMA DE ECOMENDACIONES ************************ #
 
-                                                if start+1 == 1 or start+1 == 3 or start+1 == 5:
+                                                if st.session_state.count_pose+1 == 1 or st.session_state.count_pose+1 == 3 or st.session_state.count_pose+1 == 5:
 
                                                     if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
                                                         (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
@@ -2115,7 +2118,7 @@ if authentication_status:
                                                     print(final_rec)
                             
 
-                                                elif start+1 == 2:
+                                                elif st.session_state.count_pose+1 == 2:
 
                                                     if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
                                                         (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
@@ -2153,7 +2156,7 @@ if authentication_status:
                                                     final_rec = rec_right_hip_angle+rec_right_knee_angle+rec_left_knee_angle
                                                     print(final_rec)
 
-                                                elif start+1 == 4:
+                                                elif st.session_state.count_pose+1 == 4:
 
                                                     if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in):
                                                         
@@ -2196,69 +2199,69 @@ if authentication_status:
 
                                                 if final_rec != "":
 
-                                                    if start+1 == 1:
+                                                    if st.session_state.count_pose+1 == 1:
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
-                                                            speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t6.start()
+                                                            speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                            speak_rec.start()
 
-                                                    elif start+1 == 2:
-
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
-                                                            except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
-
-                                                    elif start+1 == 3:
+                                                    elif st.session_state.count_pose+1 == 2:
 
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_stage1.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
-                                                    elif start+1 == 4:
+                                                    elif st.session_state.count_pose+1 == 3:
 
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t3.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_stage2.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
-                                                    elif start+1 == 5:
+                                                    elif st.session_state.count_pose+1 == 4:
 
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t4.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_stage3.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
+
+                                                    elif st.session_state.count_pose+1 == 5:
+
+                                                        try:
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
+                                                        except:
+                                                            try:
+                                                                if not speak_stage4.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+                                                            except:
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                 # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ #
                                         
@@ -2305,8 +2308,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
+                                                speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage1.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -2363,8 +2366,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t2 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t2.start()
+                                                speak_stage2 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage2.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -2426,8 +2429,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
+                                                speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage3.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -2481,8 +2484,8 @@ if authentication_status:
                                                 start +=1
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t4 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t4.start()
+                                                speak_stage4 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage4.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -2547,8 +2550,8 @@ if authentication_status:
                                                 start = 0
                                                 ############################################
                                                 update_dashboard()
-                                                speak_t5 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t5.start()
+                                                speak_stage5 = threading.Thread(target=speak, args=(stage,))
+                                                speak_stage5.start()
                                                 fin_rutina = get_timestap_log()
                                                 df_results = ut.add_row_df_results(df_results,
                                                                                 id_exercise,                        #1 - str - id_exercise
@@ -2700,67 +2703,67 @@ if authentication_status:
 
                                                     if start+1 == 1:
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
-                                                            speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t6.start()
+                                                            speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                            speak_rec.start()
 
                                                     elif start+1 == 2:
 
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_stage1.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                     elif start+1 == 3:
 
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_stage2.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                     elif start+1 == 4:
 
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t3.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_stage3.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                     elif start+1 == 5:
 
                                                         try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
+                                                            if not speak_rec.is_alive():
+                                                                speak_rec.start()
                                                         except:
                                                             try:
-                                                                if not speak_t4.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_stage4.is_alive():
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
                                                 # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ #
                                         else:
@@ -2884,14 +2887,14 @@ if authentication_status:
                                             if start == 2 and flagTime == True:
                                                 mifrontplank = "Mantenga la posicion" + str(st.session_state.seconds_rest_time) + " segundos"
                                                 cv2.putText(image, 'WAIT FOR ' + str(st.session_state.seconds_rest_time) + ' s' , (155,350), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255,0,0), 3, cv2.LINE_AA)
-                                                speak_t2 = threading.Thread(target=speak, args=(mifrontplank,))
-                                                speak_t2.start()
+                                                speak_stage2 = threading.Thread(target=speak, args=(mifrontplank,))
+                                                speak_stage2.start()
 
                                                 stframe.image(image,channels = 'BGR',use_column_width=True)
-                                                time.sleep(int(st.session_state.seconds_rest_time)+3)#Se añade 3 segundos que se demora en dar la indicación
+                                                time.sleep(int(st.session_state.seconds_rest_time))
                                                 mffrontplank = "Baje!"
-                                                speak_t2 = threading.Thread(target=speak, args=(mffrontplank,))
-                                                speak_t2.start()
+                                                speak_stage2 = threading.Thread(target=speak, args=(mffrontplank,))
+                                                speak_stage2.start()
                                                 #############################################
                                                 update_dashboard()
                                                 ######################################s######
@@ -3029,6 +3032,7 @@ if authentication_status:
                                         time.sleep(1)
                                         speak_f_set = threading.Thread(target=speak, args=(msucessset,))
                                         speak_f_set.start()
+                                        speak_f_set.join()
                                         time.sleep(int(st.session_state.seconds_rest_time))
                                     except:
                                         stframe.image(image,channels = 'BGR',use_column_width=True)
@@ -3043,18 +3047,18 @@ if authentication_status:
                         speak_f_exercise.start()
                         finishexercise = True
                         #Finalización de hilos
-                        speak_t0.join()
-                        speak_t1.join()
-                        speak_t2.join()
-                        speak_t3.join()
-                        speak_t4.join()
-
+                        speak_start_msg.join() # Mensaje de inicio ("Por favor asegurese que su dispositivo pueda ...")
+                        speak_stage1.join() # Stage 1
+                        speak_stage2.join() # Stage 2
+                        speak_stage3.join() # Stage 3
                         if id_exercise == "forward_lunge" or id_exercise == "bird_dog": #Se terminan los hilos de ejercicios de más de 3 poses
-                            speak_t5.join()
-                            speak_t6.join()
-
-                        speak_f_set.join()
-                        speak_f_exercise.join()
+                            speak_stage4.join() # Stage 4
+                            speak_stage5.join() # Stage 5
+                        try:
+                            speak_rec.join() # Recomendaciones según pose y articulaciones
+                        except:
+                            print("No hubieron recomendaciones")
+                        speak_f_exercise.join() # Aviso de fin de repetición
                         time.sleep(5)          
                         cap.release()
                         cv2.destroyAllWindows()
