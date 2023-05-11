@@ -50,6 +50,7 @@ def load_exercise_metadata(id_exercise):
 
 #functions to use text to speech
 def speak(text):
+    substrs_to_compare = ['Felicitaciones', "Mantenga la posicion"]
     with io.BytesIO() as file:
         tts = gTTS(text=text, lang='es')
         tts.write_to_fp(file)
@@ -58,7 +59,8 @@ def speak(text):
         pygame.mixer.music.play()
         while pygame.mixer.music.get_busy():
             continue
-    time.sleep(3)
+    if not any(text.startswith(substring) for substring in substrs_to_compare):
+        time.sleep(3)
 
 def load_user(username):
     df = db.get_user(username)
@@ -268,18 +270,18 @@ def update_dashboard():
         if st.session_state.count_pose_g < st.session_state.total_poses:
             st.session_state.count_pose_g += 1
             placeholder_status.markdown(font_size_px("🏎️ TRAINING..."), unsafe_allow_html=True)
-            placeholder_pose_global.metric("POSE GLOBAL", str(st.session_state.count_pose_g) + " / " + str(st.session_state.total_poses), "+1 pose")
+            placeholder_pose_global.metric("POSE GLOBAL DONE", str(st.session_state.count_pose_g) + " / " + str(st.session_state.total_poses), "+1 pose")
 
             if st.session_state.count_pose < st.session_state.n_poses:
                 st.session_state.count_pose += 1
-                placeholder_pose.metric("POSE", str(st.session_state.count_pose) + " / "+ str(st.session_state.n_poses), "+1 pose")
+                placeholder_pose.metric("POSE DONE", str(st.session_state.count_pose) + " / "+ str(st.session_state.n_poses), "+1 pose")
         else:
             placeholder_status.markdown(font_size_px("🥇 FINISH !!!"), unsafe_allow_html=True)
             placeholder_trainer.image("./02. trainers/" + id_exercise + "/images/" + id_exercise + "1.png")
-            placeholder_pose_global.metric("POSE GLOBAL", str(st.session_state.count_pose_g) + " / " + str(st.session_state.total_poses), "COMPLETED", delta_color="inverse")
-            placeholder_pose.metric("POSE", str(st.session_state.n_poses) + " / "+ str(st.session_state.n_poses), "COMPLETED", delta_color="inverse")
-            placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "COMPLETED", delta_color="inverse")
-            placeholder_set.metric("SET", str(st.session_state.count_set) + " / "+ str(st.session_state.n_sets), "COMPLETED", delta_color="inverse" )
+            placeholder_pose_global.metric("POSE GLOBAL DONE", str(st.session_state.count_pose_g) + " / " + str(st.session_state.total_poses), "COMPLETED", delta_color="inverse")
+            placeholder_pose.metric("POSE DONE", str(st.session_state.n_poses) + " / "+ str(st.session_state.n_poses), "COMPLETED", delta_color="inverse")
+            placeholder_rep.metric("REPETITION DONE", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "COMPLETED", delta_color="inverse")
+            placeholder_set.metric("SET DONE", str(st.session_state.count_set) + " / "+ str(st.session_state.n_sets), "COMPLETED", delta_color="inverse" )
 
 def get_df_aprox_exercise_by_date(df_whole_training, df_aprox_exercise_by_date):
 
@@ -499,19 +501,19 @@ if authentication_status:
     
         with exercise_number_set:
             placeholder_set = st.empty()
-            placeholder_set.metric("SET", "0 / "+ str(st.session_state.n_sets), "+1 set")
+            placeholder_set.metric("SET DONE", "0 / "+ str(st.session_state.n_sets), "+1 set")
 
         with exercise_number_rep:
             placeholder_rep = st.empty()
-            placeholder_rep.metric("REPETITION", "0 / "+ str(st.session_state.n_reps), "+1 repetition")
+            placeholder_rep.metric("REPETITION DONE", "0 / "+ str(st.session_state.n_reps), "+1 repetition")
 
         with exercise_number_pose:
             placeholder_pose = st.empty()
-            placeholder_pose.metric("POSE", "0 / "+ str(st.session_state.n_poses), "+1 pose")
+            placeholder_pose.metric("POSE DONE", "0 / "+ str(st.session_state.n_poses), "+1 pose")
         
         with exercise_number_pose_global:
             placeholder_pose_global = st.empty()
-            placeholder_pose_global.metric("POSE GLOBAL", "0 / " + str(st.session_state.total_poses), "+1 pose")
+            placeholder_pose_global.metric("POSE GLOBAL DONE", "0 / " + str(st.session_state.total_poses), "+1 pose")
 
         with exercise_status:
             placeholder_status = st.empty()
@@ -566,8 +568,8 @@ if authentication_status:
                     placeholder_trainer.image("./01. webapp_img/warm_up.gif")
                     stframe.image("./01. webapp_img/warm_up.gif")
                     mstart = "Por favor asegurese que su dispositivo pueda ver su cuerpo completo en su pantalla"
-                    speak_t0 = threading.Thread(target=speak, args=(mstart,))
-                    speak_t0.start()
+                    speak_start_msg = threading.Thread(target=speak, args=(mstart,))
+                    speak_start_msg.start()
                     time.sleep(2)
                     for secs in range(N,0,-1):
                         ss = secs%60
@@ -864,14 +866,20 @@ if authentication_status:
                                         color_validation = (255, 0, 0) #Azul - dentro del rango
                                         message_validation = "Correct Position"
 
-                                        if pose_user_cost < pose_trainer_cost_min or pose_user_cost > pose_trainer_cost_min:
+                                        if (pose_user_cost >= pose_trainer_cost_min) and (pose_user_cost <= pose_trainer_cost_max):
+
+                                            color_validation = (255, 0, 0) #Azul - dentro del rango
+                                            message_validation = "Correct Position"
+
+                                        else:
                                             color_validation = (0, 0, 255) #Rojo - fuera del rango
                                             message_validation = "Wrong Position"
+
 
                                         # #1. Esquina superior izquierda: Evaluación de costos trainer vs user
                                         cv2.rectangle(image, (700,0), (415,50), (245,117,16), -1)
                                         cv2.putText(image, 
-                                                    "Pose: "+ str(st.session_state.count_pose+1),
+                                                    "Current pose: "+ str(st.session_state.count_pose+1),
                                                     (435,20),
                                                     cv2.FONT_HERSHEY_DUPLEX,
                                                     0.5,
@@ -907,1930 +915,1957 @@ if authentication_status:
                                         ############################################################
                                         ##                📐 SISTEMA ÁNGULOS (INICIO)             ##
                                         ############################################################
-                                        #Ejercicio Pushup
-                                        if body_language_class == "push_up" and body_language_prob_p > 20:
-                                            print(f'body_language_prob_p: {body_language_prob_p}')
-                                            print(f'start: {start}')
-                                            right_elbow_angle_in= get_angle(df_trainers_angles, start, 'right_elbow_angles')
-                                            print(f'right_elbow_angle_in: {right_elbow_angle_in}')
-                                            right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
-                                            print(f'right_hip_angle_in: {right_hip_angle_in}')
-                                            right_knee_angle_in=get_angle(df_trainers_angles, start, 'right_knee_angles')
-                                            print(f'right_knee_angle_in: {right_knee_angle_in}')
-                                            desv_right_elbow_angle_in=get_desv_angle(df_trainers_angles, start, 'right_elbow_angles')#10
-                                            print(f'desv_right_elbow_angle: {desv_right_elbow_angle_in}')
-                                            desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#10
-                                            print(f'desv_right_hip_angle: {desv_right_hip_angle_in}')
-                                            desv_right_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'right_knee_angles')#10
-                                            print(f'desv_right_knee_angle: {desv_right_knee_angle_in}')
-
-                                            #SUMAR Y RESTAR UN RANGO DE 10 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
-                                            if  up == False and\
-                                                down == False and\
-                                                right_elbow_angle in range(int(right_elbow_angle_in-desv_right_elbow_angle_in), int(right_elbow_angle_in + desv_right_elbow_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
-                                                
-                                                up = True
-                                                stage = "Arriba"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                right_elbow_angle,                  #15 - float - right_elbow_angles_pu
-                                                                                right_hip_angle,                    #16 - float - right_hip_angles_pu
-                                                                                right_knee_angle,                   #17 - float - right_knee_angles_pu
-                                                                                None,                               #18 - float - right_shoulder_angles_cu
-                                                                                None,                               #19 - float - right_hip_angles_cu
-                                                                                None,                               #20 - float - right_knee_angles_cu
-                                                                                None,                               #21 - float - right_shoulder_angles_fp
-                                                                                None,                               #22 - float - right_hip_angles_fp
-                                                                                None,                               #23 - float - right_ankle_angles_fp
-                                                                                None,                               #24 - float - right_hip_angles_fl
-                                                                                None,                               #25 - float - right_knee_angles_fl
-                                                                                None,                               #26 - float - left_knee_angles_fl
-                                                                                None,                               #27 - float - right_shoulder_angles_bd
-                                                                                None,                               #28 - float - right_hip_angles_bd
-                                                                                None,                               #29 - float - right_knee_angles_bd
-                                                                                None,                               #30 - float - left_knee_angles_bd
-                                                                                None,                               #31 - float - right_elbow_angles_bd
-                                                                                None,                               #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ############################################ 
-                                                print(f'right_elbow_angle: {right_elbow_angle}')
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Primera Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == True and\
-                                                down == False and\
-                                                right_elbow_angle in range(int(right_elbow_angle_in - desv_right_elbow_angle_in) , int(right_elbow_angle_in + desv_right_elbow_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
-                                                
-                                                down = True
-                                                stage = "Abajo"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t2 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t2.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-                                                                                
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                right_elbow_angle,                  #15 - float - right_elbow_angles_pu
-                                                                                right_hip_angle,                    #16 - float - right_hip_angles_pu
-                                                                                right_knee_angle,                   #17 - float - right_knee_angles_pu
-                                                                                None,    #18 - float - right_shoulder_angles_cu
-                                                                                None,    #19 - float - right_hip_angles_cu
-                                                                                None,    #20 - float - right_knee_angles_cu
-                                                                                None,    #21 - float - right_shoulder_angles_fp
-                                                                                None,    #22 - float - right_hip_angles_fp
-                                                                                None,    #23 - float - right_ankle_angles_fp
-                                                                                None,    #24 - float - right_hip_angles_fl
-                                                                                None,    #25 - float - right_knee_angles_fl
-                                                                                None,    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ############################################ 
-                                                print(f'right_elbow_angle: {right_elbow_angle}')
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Segunda Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == True and\
-                                                down == True and\
-                                                right_elbow_angle in range(int(right_elbow_angle_in - desv_right_elbow_angle_in) , int(right_elbow_angle_in + desv_right_elbow_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):                      
-                                                
-                                                print(f'right_elbow_angle: {right_elbow_angle}')
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Tercera Pose')
-
-                                                up = False
-                                                down = False
-                                                stage = "Arriba"
-                                                start = 0
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                right_elbow_angle,                  #15 - float - right_elbow_angles_pu
-                                                                                right_hip_angle,                    #16 - float - right_hip_angles_pu
-                                                                                right_knee_angle,                   #17 - float - right_knee_angles_pu
-                                                                                None,    #18 - float - right_shoulder_angles_cu
-                                                                                None,    #19 - float - right_hip_angles_cu
-                                                                                None,    #20 - float - right_knee_angles_cu
-                                                                                None,    #21 - float - right_shoulder_angles_fp
-                                                                                None,    #22 - float - right_hip_angles_fp
-                                                                                None,    #23 - float - right_ankle_angles_fp
-                                                                                None,    #24 - float - right_hip_angles_fl
-                                                                                None,    #25 - float - right_knee_angles_fl
-                                                                                None,    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ######################################s######
-                                                st.session_state.count_rep += 1
-                                                placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
-                                                st.session_state.count_pose = 0
-                                                st.session_state.inicio_rutina = fin_rutina    
-
-                                            else:
-
-                                                # ************************ INICIO SISTEMA DE ECOMENDACIONES ************************ #
-                                                
-                                                if start+1 == 1 or start+1 == 3:
-                                                
-                                                    if right_elbow_angle > right_elbow_angle_in+desv_right_elbow_angle_in:
-
-                                                        rec_right_elbow_angle = "Flexiona más tu codo derecho"
-
-                                                    elif right_elbow_angle < right_elbow_angle_in-desv_right_elbow_angle_in:
-
-                                                        rec_right_elbow_angle = "Flexiona menos tu codo derecho"
-
-                                                    else:
-
-                                                        rec_right_elbow_angle = ""
-
-                                                    if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
-                                                        (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
-
-                                                        rec_right_hip_angle = ", mantén tu cadera recta"
-
-                                                    else:
-                                                        rec_right_hip_angle = ""
-
-                                                    if (right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in):
-
-                                                        rec_right_knee_angle = ", flexiona menos tu rodilla derecha"
-
-                                                    elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona más tu rodilla derecha"
-
-                                                    else:
-                                                        rec_right_knee_angle = ""
-
-                                                    final_rec = rec_right_elbow_angle+rec_right_hip_angle+rec_right_knee_angle
-                                                    print(final_rec)
-
-                                                elif start+1 == 2:
-
-                                                    if right_elbow_angle > right_elbow_angle_in+desv_right_elbow_angle_in:
-
-                                                        rec_right_elbow_angle = "Flexiona más tu codo derecho"
-
-                                                    elif right_elbow_angle < right_elbow_angle_in-desv_right_elbow_angle_in:
-
-                                                        rec_right_elbow_angle = "Flexiona menos tu codo derecho"
-
-                                                    else:
-                                                        rec_right_elbow_angle = ""
-
-                                                    if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
-                                                        (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
-
-                                                        rec_right_hip_angle = ", mantén tu cadera recta"
-
-                                                    else:
-                                                        rec_right_hip_angle = ""
-
-                                                    if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona más tu rodilla derecha"
-
-                                                    elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona menos tu rodilla derecha"
-
-                                                    else:
-                                                        rec_right_knee_angle = ""
-
-                                                    final_rec = rec_right_elbow_angle+rec_right_hip_angle+rec_right_knee_angle
-                                                    print(final_rec)
-
-                                                if final_rec != "":
-
-                                                    if start+1 == 1:
+                                        if (pose_user_cost < pose_trainer_cost_min) or (pose_user_cost > pose_trainer_cost_max):
+                                            cost_valid = "Asegúrate de imitar la pose del ejercicio"
+                                            try:
+                                                if not speak_stage1.is_alive():
+                                                    speak_cost.start()
+                                            except:
+                                                try:
+                                                    if not speak_stage2.is_alive():
+                                                        speak_cost.start()
+                                                except:
+                                                    try:
+                                                        if not speak_stage3.is_alive():
+                                                            speak_cost.start()
+                                                    except:
                                                         try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t4.start()
-
-                                                    elif start+1 == 2:
-
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
+                                                            if not speak_stage4.is_alive():
+                                                                speak_cost.start()
                                                         except:
                                                             try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
+                                                                if not speak_cost.is_alive():
+                                                                    speak_cost.start()
                                                             except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
-
-                                                    elif start+1 == 3:
-
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
-                                                            except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
-
-                                                # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ #                                    
-                                        #Ejerccio curlup
-                                        elif body_language_class == "curl_up" and body_language_prob_p > 20:
-                                            print(f'body_language_prob_p: {body_language_prob_p}')
-                                            print(f'start: {start}')
-                                            print(f'df_trainers_angles: {df_trainers_angles}')
-                                            right_shoulder_angle_in=get_angle(df_trainers_angles, start, 'right_shoulder_angles')
-                                            print(f'right_shoulder_angle_in: {right_shoulder_angle_in}')
-                                            right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
-                                            print(f'right_hip_angle_in: {right_hip_angle_in}')
-                                            right_knee_angle_in=get_angle(df_trainers_angles, start, 'right_knee_angles')
-                                            print(f'right_knee_angle_in: {right_knee_angle_in}')
-                                            desv_right_shoulder_angle_in=get_desv_angle(df_trainers_angles, start, 'right_shoulder_angles')#15
-                                            print(f'desv_right_shoulder_angle_in: {desv_right_shoulder_angle_in}')
-                                            desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#15
-                                            print(f'desv_right_hip_angle: {desv_right_hip_angle_in}')
-                                            desv_right_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'right_knee_angles')#15
-                                            print(f'desv_right_knee_angle: {desv_right_knee_angle_in}')
-
-                                            #SUMAR Y RESTAR UN RANGO DE 30 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
-                                            if  up == False and\
-                                                down == False and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in-desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
-                                                
-                                                up = True
-                                                stage = "Abajo"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                right_shoulder_angle,               #18 - float - right_shoulder_angles_cu
-                                                                                right_hip_angle,                    #19 - float - right_hip_angles_cu
-                                                                                right_knee_angle,                   #20 - float - right_knee_angles_cu
-                                                                                None,    #21 - float - right_shoulder_angles_fp
-                                                                                None,    #22 - float - right_hip_angles_fp
-                                                                                None,    #23 - float - right_ankle_angles_fp
-                                                                                None,    #24 - float - right_hip_angles_fl
-                                                                                None,    #25 - float - right_knee_angles_fl
-                                                                                None,    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ############################################ 
-                                                print(f'right_shoulder_angle: {right_shoulder_angle}')
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Primera Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == True and\
-                                                down == False and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in) , int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
-                                                
-                                                down = True
-                                                stage = "Arriba"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t2 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t2.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                right_shoulder_angle,               #18 - float - right_shoulder_angles_cu
-                                                                                right_hip_angle,                    #19 - float - right_hip_angles_cu
-                                                                                right_knee_angle,                   #20 - float - right_knee_angles_cu
-                                                                                None,    #21 - float - right_shoulder_angles_fp
-                                                                                None,    #22 - float - right_hip_angles_fp
-                                                                                None,    #23 - float - right_ankle_angles_fp
-                                                                                None,    #24 - float - right_hip_angles_fl
-                                                                                None,    #25 - float - right_knee_angles_fl
-                                                                                None,    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ############################################ 
-                                                print(f'right_shoulder_angle: {right_shoulder_angle}')
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Segunda Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == True and\
-                                                down == True and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in) , int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):                      
-                                                
-                                                print(f'right_shoulder_angle: {right_shoulder_angle}')
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Tercera Pose')
-
-                                                up = False
-                                                down = False
-                                                stage = "Abajo"
-                                                start = 0
-                                                ###########################################
-                                                update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                right_shoulder_angle,               #18 - float - right_shoulder_angles_cu
-                                                                                right_hip_angle,                    #19 - float - right_hip_angles_cu
-                                                                                right_knee_angle,                   #20 - float - right_knee_angles_cu
-                                                                                None,    #21 - float - right_shoulder_angles_fp
-                                                                                None,    #22 - float - right_hip_angles_fp
-                                                                                None,    #23 - float - right_ankle_angles_fp
-                                                                                None,    #24 - float - right_hip_angles_fl
-                                                                                None,    #25 - float - right_knee_angles_fl
-                                                                                None,    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                #####################################s######
-                                                st.session_state.count_rep += 1
-                                                placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
-                                                st.session_state.count_pose = 0
-                                                st.session_state.inicio_rutina = fin_rutina
-
-                                            else:
-
-                                                # ************************ INICIO SISTEMA DE ECOMENDACIONES ************************ #
-                                                
-                                                if start+1 == 1 or start+1 == 3:
-                                                
-                                                    if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
-
-                                                    elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
-
-                                                    else:
-                                                        rec_right_shoulder_angle = ""
-
-                                                    if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona más tu cadera"
-
-                                                    elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona menos tu cadera"
-
-                                                    else:
-                                                        rec_right_hip_angle = ""
-
-                                                    if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona más tus rodillas"
-
-                                                    elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona menos tus rodillas"
-
-                                                    else:
-                                                        rec_right_knee_angle = ""
-
-                                                    final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_knee_angle
-                                                    print(final_rec)
-
-                                                elif start+1 == 2:
-
-                                                    if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
-
-                                                    elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
-
-                                                    else:
-
-                                                        rec_right_shoulder_angle = ""
-
-                                                    if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona más tu cadera"
-
-                                                    elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona menos tu cadera"
-
-                                                    else:
-
-                                                        rec_right_hip_angle = ""
-
-                                                    if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona más tus rodillas"
-
-                                                    elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona menos tus rodillas"
-
-                                                    else:
-                                                        rec_right_knee_angle = ""
-
-                                                    final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_knee_angle
-                                                    print(final_rec)
-
-                                                if final_rec != "":
-
-                                                    if start+1 == 1:
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t4.start()
-
-                                                    elif start+1 == 2:
-
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
-                                                            except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
-
-                                                    elif start+1 == 3:
-
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
-                                                            except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
-
-                                                # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ #
-                                        #Ejerccio Frontplank
-                                        elif body_language_class == "front_plank" and body_language_prob_p > 25:
-                                            
-                                            print(f'body_language_prob_p: {body_language_prob_p}')
-                                            print(f'start: {start}')
-                                            print(f'df_trainers_angles: {df_trainers_angles}')
-                                            right_shoulder_angle_in=get_angle(df_trainers_angles, start, 'right_shoulder_angles')
-                                            print(f'right_shoulder_angle_in: {right_shoulder_angle_in}')
-                                            right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
-                                            print(f'right_hip_angle_in: {right_hip_angle_in}')
-                                            right_ankle_angle_in=get_angle(df_trainers_angles, start, 'right_ankle_angles')
-                                            print(f'right_ankle_angle_in: {right_ankle_angle_in}')
-                                            desv_right_shoulder_angle_in=get_desv_angle(df_trainers_angles, start, 'right_shoulder_angles')#15
-                                            print(f'desv_right_shoulder_angle_in: {desv_right_shoulder_angle_in}')
-                                            desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#15
-                                            print(f'desv_right_hip_angle: {desv_right_hip_angle_in}')
-                                            desv_right_ankle_angle_in=get_desv_angle(df_trainers_angles, start, 'right_ankle_angles')#15
-                                            print(f'desv_right_ankle_angle_in: {desv_right_ankle_angle_in}')
-
-                                            #SUMAR Y RESTAR UN RANGO DE 30 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
-                                            if  up == False and\
-                                                down == False and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in-desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_ankle_angle in range(int(right_ankle_angle_in - desv_right_ankle_angle_in),int(right_ankle_angle_in + desv_right_ankle_angle_in + 1)):
-                                                
-                                                up = True
-                                                stage = "Abajo"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                right_shoulder_angle,               #21 - float - right_shoulder_angles_fp
-                                                                                right_hip_angle,                    #22 - float - right_hip_angles_fp
-                                                                                right_ankle_angle,                  #23 - float - right_ankle_angles_fp
-                                                                                None,    #24 - float - right_hip_angles_fl
-                                                                                None,    #25 - float - right_knee_angles_fl
-                                                                                None,    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ############################################ 
-                                                print(f'right_shoulder_angle: {right_shoulder_angle}')
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_ankle_angle: {right_ankle_angle}')
-                                                print(f'Paso Primera Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == True and\
-                                                down == False and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in) , int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_ankle_angle in range(int(right_ankle_angle_in - desv_right_ankle_angle_in),int(right_ankle_angle_in + desv_right_ankle_angle_in + 1)):
-                                                
-                                                down = True
-                                                stage = "Arriba"
-                                                start +=1
-                                                flagTime = True
-                                                
-                                            elif up == True and\
-                                                down == True and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in) , int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
-                                                right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_ankle_angle in range(int(right_ankle_angle_in - desv_right_ankle_angle_in),int(right_ankle_angle_in + desv_right_ankle_angle_in + 1)):
-                                                
-                                                print(f'right_shoulder_angle: {right_shoulder_angle}')
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_ankle_angle: {right_ankle_angle}')
-                                                print(f'Paso Tercera Pose')
-                                                
-                                                up = False
-                                                down = False
-                                                stage = "Abajo"
-                                                start = 0
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                right_shoulder_angle,               #21 - float - right_shoulder_angles_fp
-                                                                                right_hip_angle,                    #22 - float - right_hip_angles_fp
-                                                                                right_ankle_angle,                  #23 - float - right_ankle_angles_fp
-                                                                                None,    #24 - float - right_hip_angles_fl
-                                                                                None,    #25 - float - right_knee_angles_fl
-                                                                                None,    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ######################################s######
-                                                st.session_state.count_rep += 1                                                
-                                                placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
-                                                st.session_state.count_pose = 0
-                                                st.session_state.inicio_rutina = fin_rutina
-
-                                            else:
-
-                                                # ************************ INICIO SISTEMA DE ECOMENDACIONES ************************ #
-
-                                                if start+1 == 1 or start+1 == 3:
-                                                
-                                                    if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
-
-                                                    elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
-
-                                                    else:
-                                                        rec_right_shoulder_angle = ""
-
-                                                    if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona más tu cadera"
-
-                                                    elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona menos tu cadera"
-
-                                                    else:
-                                                        rec_right_hip_angle = ""
-
-                                                    if right_ankle_angle > right_ankle_angle_in+desv_right_ankle_angle_in:
-
-                                                        rec_right_ankle_angle = ", flexiona más tu tobillo derecho"
-
-                                                    elif right_ankle_angle < right_ankle_angle_in-desv_right_ankle_angle_in:
-
-                                                        rec_right_ankle_angle = ", flexiona menos tu tobillo derecho"
-
-                                                    else:
-                                                        rec_right_ankle_angle = ""
-
-                                                    final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_ankle_angle
-                                                    print(final_rec)
-
-                                                elif start+1 == 2:
-
-                                                    if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
-
-                                                    elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
-
-                                                    else:
-
-                                                        rec_right_shoulder_angle = ""
-
-                                                    if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona menos tu cadera"
-
-                                                    elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona más tu cadera"
-
-                                                    else:
-                                                        rec_right_hip_angle = ""
-
-                                                    if right_ankle_angle > right_ankle_angle_in+desv_right_ankle_angle_in:
-
-                                                        rec_right_ankle_angle = ", flexiona más tu tobillo derecho"
-
-                                                    elif right_ankle_angle < right_ankle_angle_in-desv_right_ankle_angle_in:
-
-                                                        rec_right_ankle_angle = ", flexiona menos tu tobillo derecho"
-
-                                                    else:
-                                                        rec_right_ankle_angle = ""
-
-                                                    final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_ankle_angle
-                                                    print(final_rec)
-
-                                                if final_rec != "":
-
-                                                    if start+1 == 1:
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t4.start()
-
-                                                    elif start+1 == 2:
-
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
-                                                            except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
-
-                                                    elif start+1 == 3:
-
-                                                        try:
-                                                            if not speak_t4.is_alive():
-                                                                speak_t4.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t4.start()
-                                                            except:
-                                                                speak_t4 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t4.start()
-
-                                                # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ # 
-                                        
-                                        #Ejerccio forward_lunge
-                                        elif body_language_class == "forward_lunge" and body_language_prob_p > 20:
-
-                                            print(f'body_language_prob_p: {body_language_prob_p}')
-                                            print(f'start: {start}')
-                                            print(f'df_trainers_angles: {df_trainers_angles}')
-                                            right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
-                                            print(f'right_hip_angle_in: {right_hip_angle_in}')
-                                            right_knee_angle_in=get_angle(df_trainers_angles, start, 'right_knee_angles')
-                                            print(f'right_knee_angle_in: {right_knee_angle_in}')
-                                            left_knee_angle_in=get_angle(df_trainers_angles, start, 'left_knee_angles')
-                                            print(f'left_knee_angle_in: {left_knee_angle_in}')
-                                            desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#25
-                                            print(f'desv_right_hip_angle_in: {desv_right_hip_angle_in}')
-                                            desv_right_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'right_knee_angles')#25
-                                            print(f'desv_right_knee_angle_in: {desv_right_knee_angle_in}')
-                                            desv_left_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'left_knee_angles')#25
-                                            print(f'desv_left_knee_angle_in: {desv_left_knee_angle_in}')
-
-                                            # SUMAR Y RESTAR UN RANGO DE 30 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
-                                            if  up == False and\
-                                                down == False and\
-                                                right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
-                                                
-                                                up = True
-                                                stage = "Arriba"
-                                                start +=1
-                                                ###########################################
-                                                update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                right_hip_angle,                    #24 - float - right_hip_angles_fl
-                                                                                right_knee_angle,                   #25 - float - right_knee_angles_fl
-                                                                                left_knee_angle,                    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ########################################### 
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Primera Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == True and\
-                                                down == False and\
-                                                right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
-                                                left_knee_angle in range(int(left_knee_angle_in - desv_left_knee_angle_in), int(left_knee_angle_in + desv_left_knee_angle_in + 1)):
-                                                
-                                                down = True
-                                                stage = "Abajo"
-                                                start +=1
-                                                ###########################################
-                                                update_dashboard()
-                                                speak_t2 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t2.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                right_hip_angle,                    #24 - float - right_hip_angles_fl
-                                                                                right_knee_angle,                   #25 - float - right_knee_angles_fl
-                                                                                left_knee_angle,                    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ########################################### 
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'left_knee_angle: {left_knee_angle}')
-                                                print(f'Paso Segunda Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == True and\
-                                                down == True and\
-                                                right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
-                                                
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Tercera Pose')
-                                                up = False
-                                                down = True
-                                                stage = "Arriba"
-                                                start +=1
-                                                ###########################################
-                                                update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                right_hip_angle,                    #24 - float - right_hip_angles_fl
-                                                                                right_knee_angle,                   #25 - float - right_knee_angles_fl
-                                                                                left_knee_angle,                    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                st.session_state.inicio_rutina = fin_rutina
-                                                #####################################s######
-                                            elif up == False and\
-                                                down == True and\
-                                                mid == False and\
-                                                right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
-                                                left_knee_angle in range(int(left_knee_angle_in - desv_left_knee_angle_in), int(left_knee_angle_in + desv_left_knee_angle_in + 1)):
-                                                
-                                                mid = True
-                                                stage = "Abajo"
-                                                start +=1
-                                                ###########################################
-                                                update_dashboard()
-                                                speak_t4 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t4.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                right_hip_angle,                    #24 - float - right_hip_angles_fl
-                                                                                right_knee_angle,                   #25 - float - right_knee_angles_fl
-                                                                                left_knee_angle,                    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ########################################### 
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'left_knee_angle: {left_knee_angle}')
-                                                print(f'Paso Cuarta Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == False and\
-                                                down == True and\
-                                                mid == True and\
-                                                right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
-                                                
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'Paso Quinta Pose')
-
-                                                up = False
-                                                down = False
-                                                mid = False
-                                                stage = "Arriba"
-                                                start = 0
-                                                ###########################################
-                                                update_dashboard()
-                                                speak_t5 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t5.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                right_hip_angle,                    #24 - float - right_hip_angles_fl
-                                                                                right_knee_angle,                   #25 - float - right_knee_angles_fl
-                                                                                left_knee_angle,                    #26 - float - left_knee_angles_fl
-                                                                                None,    #27 - float - right_shoulder_angles_bd
-                                                                                None,    #28 - float - right_hip_angles_bd
-                                                                                None,    #29 - float - right_knee_angles_bd
-                                                                                None,    #30 - float - left_knee_angles_bd
-                                                                                None,    #31 - float - right_elbow_angles_bd
-                                                                                None,    #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                #####################################s######
-                                                st.session_state.count_rep += 1
-                                                placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
-                                                st.session_state.count_pose = 0
-                                                st.session_state.inicio_rutina = fin_rutina                                                
-
-                                            else:
-
-                                                # ************************ INICIO SISTEMA DE ECOMENDACIONES ************************ #
-
-                                                if start+1 == 1 or start+1 == 3 or start+1 == 5:
-
-                                                    if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
-                                                        (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
-
-                                                        rec_right_hip_angle = "Mantén tu cadera recta"
-
-                                                    else:
-
-                                                        rec_right_hip_angle = ""
-
-                                                    if (right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in) or\
-                                                        (right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in):
-
-                                                        if rec_right_hip_angle != "":
-
-                                                            rec_right_hip_angle = "Mantén tu cadera"
-                                                            rec_right_knee_angle = " y tu rodilla derecha recta"
+                                                                speak_cost = threading.Thread(target=speak, args=(cost_valid,))
+                                                                speak_cost.start() 
+                                        else:
+                                            #Ejercicio Pushup
+                                            if body_language_class == "push_up" and body_language_prob_p > 20:
+                                                print(f'body_language_prob_p: {body_language_prob_p}')
+                                                print(f'start: {start}')
+                                                right_elbow_angle_in= get_angle(df_trainers_angles, start, 'right_elbow_angles')
+                                                print(f'right_elbow_angle_in: {right_elbow_angle_in}')
+                                                right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
+                                                print(f'right_hip_angle_in: {right_hip_angle_in}')
+                                                right_knee_angle_in=get_angle(df_trainers_angles, start, 'right_knee_angles')
+                                                print(f'right_knee_angle_in: {right_knee_angle_in}')
+                                                desv_right_elbow_angle_in=get_desv_angle(df_trainers_angles, start, 'right_elbow_angles')#10
+                                                print(f'desv_right_elbow_angle: {desv_right_elbow_angle_in}')
+                                                desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#10
+                                                print(f'desv_right_hip_angle: {desv_right_hip_angle_in}')
+                                                desv_right_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'right_knee_angles')#10
+                                                print(f'desv_right_knee_angle: {desv_right_knee_angle_in}')
+
+                                                #SUMAR Y RESTAR UN RANGO DE 10 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
+                                                if  up == False and\
+                                                    down == False and\
+                                                    right_elbow_angle in range(int(right_elbow_angle_in-desv_right_elbow_angle_in), int(right_elbow_angle_in + desv_right_elbow_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
+                                                    
+                                                    up = True
+                                                    stage = "Arriba"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage1.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    right_elbow_angle,                  #15 - float - right_elbow_angles_pu
+                                                                                    right_hip_angle,                    #16 - float - right_hip_angles_pu
+                                                                                    right_knee_angle,                   #17 - float - right_knee_angles_pu
+                                                                                    None,                               #18 - float - right_shoulder_angles_cu
+                                                                                    None,                               #19 - float - right_hip_angles_cu
+                                                                                    None,                               #20 - float - right_knee_angles_cu
+                                                                                    None,                               #21 - float - right_shoulder_angles_fp
+                                                                                    None,                               #22 - float - right_hip_angles_fp
+                                                                                    None,                               #23 - float - right_ankle_angles_fp
+                                                                                    None,                               #24 - float - right_hip_angles_fl
+                                                                                    None,                               #25 - float - right_knee_angles_fl
+                                                                                    None,                               #26 - float - left_knee_angles_fl
+                                                                                    None,                               #27 - float - right_shoulder_angles_bd
+                                                                                    None,                               #28 - float - right_hip_angles_bd
+                                                                                    None,                               #29 - float - right_knee_angles_bd
+                                                                                    None,                               #30 - float - left_knee_angles_bd
+                                                                                    None,                               #31 - float - right_elbow_angles_bd
+                                                                                    None,                               #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ############################################ 
+                                                    print(f'right_elbow_angle: {right_elbow_angle}')
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Primera Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == True and\
+                                                    down == False and\
+                                                    right_elbow_angle in range(int(right_elbow_angle_in - desv_right_elbow_angle_in) , int(right_elbow_angle_in + desv_right_elbow_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
+                                                    
+                                                    down = True
+                                                    stage = "Abajo"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage2 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage2.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+                                                                                    
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    right_elbow_angle,                  #15 - float - right_elbow_angles_pu
+                                                                                    right_hip_angle,                    #16 - float - right_hip_angles_pu
+                                                                                    right_knee_angle,                   #17 - float - right_knee_angles_pu
+                                                                                    None,    #18 - float - right_shoulder_angles_cu
+                                                                                    None,    #19 - float - right_hip_angles_cu
+                                                                                    None,    #20 - float - right_knee_angles_cu
+                                                                                    None,    #21 - float - right_shoulder_angles_fp
+                                                                                    None,    #22 - float - right_hip_angles_fp
+                                                                                    None,    #23 - float - right_ankle_angles_fp
+                                                                                    None,    #24 - float - right_hip_angles_fl
+                                                                                    None,    #25 - float - right_knee_angles_fl
+                                                                                    None,    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ############################################ 
+                                                    print(f'right_elbow_angle: {right_elbow_angle}')
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Segunda Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == True and\
+                                                    down == True and\
+                                                    right_elbow_angle in range(int(right_elbow_angle_in - desv_right_elbow_angle_in) , int(right_elbow_angle_in + desv_right_elbow_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):                      
+                                                    
+                                                    print(f'right_elbow_angle: {right_elbow_angle}')
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Tercera Pose')
+
+                                                    up = False
+                                                    down = False
+                                                    stage = "Arriba"
+                                                    start = 0
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage3.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    right_elbow_angle,                  #15 - float - right_elbow_angles_pu
+                                                                                    right_hip_angle,                    #16 - float - right_hip_angles_pu
+                                                                                    right_knee_angle,                   #17 - float - right_knee_angles_pu
+                                                                                    None,    #18 - float - right_shoulder_angles_cu
+                                                                                    None,    #19 - float - right_hip_angles_cu
+                                                                                    None,    #20 - float - right_knee_angles_cu
+                                                                                    None,    #21 - float - right_shoulder_angles_fp
+                                                                                    None,    #22 - float - right_hip_angles_fp
+                                                                                    None,    #23 - float - right_ankle_angles_fp
+                                                                                    None,    #24 - float - right_hip_angles_fl
+                                                                                    None,    #25 - float - right_knee_angles_fl
+                                                                                    None,    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ######################################s######
+                                                    st.session_state.count_rep += 1
+                                                    placeholder_rep.metric("REPETITION DONE", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
+                                                    st.session_state.count_pose = 0
+                                                    st.session_state.inicio_rutina = fin_rutina    
+
+                                                else:
+
+                                                    # ************************ INICIO SISTEMA DE RECOMENDACIONES ************************ #
+                                                    
+                                                    if st.session_state.count_pose+1 == 1 or st.session_state.count_pose+1 == 3:
+                                                    
+                                                        if right_elbow_angle > right_elbow_angle_in+desv_right_elbow_angle_in:
+
+                                                            rec_right_elbow_angle = "Flexiona más tu codo derecho"
+
+                                                        elif right_elbow_angle < right_elbow_angle_in-desv_right_elbow_angle_in:
+
+                                                            rec_right_elbow_angle = "Flexiona menos tu codo derecho"
 
                                                         else:
 
-                                                            rec_right_knee_angle = "Mantén tu rodilla derecha recta"
-                                                    else:
+                                                            rec_right_elbow_angle = ""
 
-                                                        rec_right_knee_angle = ""
+                                                        if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
+                                                            (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
 
-                                                    final_rec = rec_right_hip_angle+rec_right_knee_angle
-                                                    print(final_rec)
-                            
+                                                            rec_right_hip_angle = ", mantén tu cadera recta"
 
-                                                elif start+1 == 2:
+                                                        else:
+                                                            rec_right_hip_angle = ""
 
-                                                    if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
-                                                        (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
+                                                        if (right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in):
 
-                                                        rec_right_hip_angle = "Mantén tu cadera recta"
+                                                            rec_right_knee_angle = ", flexiona menos tu rodilla derecha"
 
-                                                    else:
+                                                        elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
 
-                                                        rec_right_hip_angle = ""
+                                                            rec_right_knee_angle = ", flexiona más tu rodilla derecha"
 
-                                                    if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
-                                                            
-                                                        rec_right_knee_angle = ", flexiona más tu rodilla derecha manteniendola hacia Abajo"
+                                                        else:
+                                                            rec_right_knee_angle = ""
 
-                                                    elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
-        
-                                                        rec_right_knee_angle = ", flexiona menos tu rodilla derecha manteniendola hacia Abajo"                                                    
+                                                        final_rec = rec_right_elbow_angle+rec_right_hip_angle+rec_right_knee_angle
+                                                        print(final_rec)
 
-                                                    else:
+                                                    elif st.session_state.count_pose+1 == 2:
 
-                                                        rec_right_knee_angle = ""
+                                                        if right_elbow_angle > right_elbow_angle_in+desv_right_elbow_angle_in:
 
-                                                    if left_knee_angle > left_knee_angle_in+desv_left_knee_angle_in:
+                                                            rec_right_elbow_angle = "Flexiona más tu codo derecho"
 
-                                                        rec_left_knee_angle = ", flexiona más tu rodilla izquierda manteniendola frente a tu cadera"
+                                                        elif right_elbow_angle < right_elbow_angle_in-desv_right_elbow_angle_in:
 
-                                                    elif left_knee_angle < left_knee_angle_in-desv_left_knee_angle_in:
+                                                            rec_right_elbow_angle = "Flexiona menos tu codo derecho"
 
-                                                        rec_left_knee_angle = ", flexiona menos tu rodilla izquierda manteniendola frente a tu cadera"                                                    
+                                                        else:
+                                                            rec_right_elbow_angle = ""
 
-                                                    else:
+                                                        if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
+                                                            (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
 
-                                                        rec_left_knee_angle = ""
+                                                            rec_right_hip_angle = ", mantén tu cadera recta"
+
+                                                        else:
+                                                            rec_right_hip_angle = ""
+
+                                                        if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona más tu rodilla derecha"
+
+                                                        elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona menos tu rodilla derecha"
+
+                                                        else:
+                                                            rec_right_knee_angle = ""
+
+                                                        final_rec = rec_right_elbow_angle+rec_right_hip_angle+rec_right_knee_angle
+                                                        print(final_rec)
+
+                                                    if final_rec != "":
+
+                                                        if st.session_state.count_pose+1 == 1:
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
+
+                                                        elif st.session_state.count_pose+1 == 2:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage1.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                        elif st.session_state.count_pose+1 == 3:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage2.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                # ************************ FIN SISTEMA DE RECOMENDACIONES ************************ #                                   
+                                            #Ejerccio curlup
+                                            elif body_language_class == "curl_up" and body_language_prob_p > 20:
+                                                print(f'body_language_prob_p: {body_language_prob_p}')
+                                                print(f'start: {start}')
+                                                print(f'df_trainers_angles: {df_trainers_angles}')
+                                                right_shoulder_angle_in=get_angle(df_trainers_angles, start, 'right_shoulder_angles')
+                                                print(f'right_shoulder_angle_in: {right_shoulder_angle_in}')
+                                                right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
+                                                print(f'right_hip_angle_in: {right_hip_angle_in}')
+                                                right_knee_angle_in=get_angle(df_trainers_angles, start, 'right_knee_angles')
+                                                print(f'right_knee_angle_in: {right_knee_angle_in}')
+                                                desv_right_shoulder_angle_in=get_desv_angle(df_trainers_angles, start, 'right_shoulder_angles')#15
+                                                print(f'desv_right_shoulder_angle_in: {desv_right_shoulder_angle_in}')
+                                                desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#15
+                                                print(f'desv_right_hip_angle: {desv_right_hip_angle_in}')
+                                                desv_right_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'right_knee_angles')#15
+                                                print(f'desv_right_knee_angle: {desv_right_knee_angle_in}')
+
+                                                #SUMAR Y RESTAR UN RANGO DE 30 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
+                                                if  up == False and\
+                                                    down == False and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in-desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
                                                     
-                                                    final_rec = rec_right_hip_angle+rec_right_knee_angle+rec_left_knee_angle
-                                                    print(final_rec)
+                                                    up = True
+                                                    stage = "Abajo"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage1.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
 
-                                                elif start+1 == 4:
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
 
-                                                    if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in):
-                                                        
-                                                        rec_right_hip_angle = "Flexiona más tu cadera"
-
-                                                    elif (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
-
-                                                        rec_right_hip_angle = "Flexiona menos tu cadera"
-
-                                                    else:
-
-                                                        rec_right_hip_angle = ""
-
-                                                    if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona más tu rodilla derecha manteniendola frente a tu cadera"
-
-                                                    elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona menos tu rodilla derecha manteniendola frente a tu cadera"                                                    
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    right_shoulder_angle,               #18 - float - right_shoulder_angles_cu
+                                                                                    right_hip_angle,                    #19 - float - right_hip_angles_cu
+                                                                                    right_knee_angle,                   #20 - float - right_knee_angles_cu
+                                                                                    None,    #21 - float - right_shoulder_angles_fp
+                                                                                    None,    #22 - float - right_hip_angles_fp
+                                                                                    None,    #23 - float - right_ankle_angles_fp
+                                                                                    None,    #24 - float - right_hip_angles_fl
+                                                                                    None,    #25 - float - right_knee_angles_fl
+                                                                                    None,    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ############################################ 
+                                                    print(f'right_shoulder_angle: {right_shoulder_angle}')
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Primera Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == True and\
+                                                    down == False and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in) , int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
                                                     
-                                                    else:
+                                                    down = True
+                                                    stage = "Arriba"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage2 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage2.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
 
-                                                        rec_right_knee_angle = ""
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
 
-                                                    if left_knee_angle > left_knee_angle_in+desv_left_knee_angle_in:
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    right_shoulder_angle,               #18 - float - right_shoulder_angles_cu
+                                                                                    right_hip_angle,                    #19 - float - right_hip_angles_cu
+                                                                                    right_knee_angle,                   #20 - float - right_knee_angles_cu
+                                                                                    None,    #21 - float - right_shoulder_angles_fp
+                                                                                    None,    #22 - float - right_hip_angles_fp
+                                                                                    None,    #23 - float - right_ankle_angles_fp
+                                                                                    None,    #24 - float - right_hip_angles_fl
+                                                                                    None,    #25 - float - right_knee_angles_fl
+                                                                                    None,    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ############################################ 
+                                                    print(f'right_shoulder_angle: {right_shoulder_angle}')
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Segunda Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == True and\
+                                                    down == True and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in) , int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in),int(right_knee_angle_in + desv_right_knee_angle_in + 1)):                      
+                                                    
+                                                    print(f'right_shoulder_angle: {right_shoulder_angle}')
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Tercera Pose')
 
-                                                        rec_left_knee_angle = ", flexiona más tu rodilla izquierda manteniendola hacia Abajo"
+                                                    up = False
+                                                    down = False
+                                                    stage = "Abajo"
+                                                    start = 0
+                                                    ###########################################
+                                                    update_dashboard()
+                                                    speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage3.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
 
-                                                    elif left_knee_angle < left_knee_angle_in-desv_left_knee_angle_in:
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
 
-                                                        rec_left_knee_angle = ", flexiona menos tu rodilla izquierda manteniendola hacia Abajo"                                                    
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    right_shoulder_angle,               #18 - float - right_shoulder_angles_cu
+                                                                                    right_hip_angle,                    #19 - float - right_hip_angles_cu
+                                                                                    right_knee_angle,                   #20 - float - right_knee_angles_cu
+                                                                                    None,    #21 - float - right_shoulder_angles_fp
+                                                                                    None,    #22 - float - right_hip_angles_fp
+                                                                                    None,    #23 - float - right_ankle_angles_fp
+                                                                                    None,    #24 - float - right_hip_angles_fl
+                                                                                    None,    #25 - float - right_knee_angles_fl
+                                                                                    None,    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    #####################################s######
+                                                    st.session_state.count_rep += 1
+                                                    placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
+                                                    st.session_state.count_pose = 0
+                                                    st.session_state.inicio_rutina = fin_rutina
 
-                                                    else:
+                                                else:
 
-                                                        rec_left_knee_angle = ""
+                                                    # ************************ INICIO SISTEMA DE RECOMENDACIONES ************************ #
+                                                
+                                                    if start+1 == 1 or start+1 == 3:
+                                                    
+                                                        if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
 
-                                                    final_rec = rec_right_hip_angle+rec_right_knee_angle+rec_left_knee_angle
-                                                    print(final_rec)
+                                                            rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
 
-                                                if final_rec != "":
+                                                        elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
 
-                                                    if start+1 == 1:
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
-                                                            speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t6.start()
+                                                            rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
+
+                                                        else:
+                                                            rec_right_shoulder_angle = ""
+
+                                                        if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona más tu cadera"
+
+                                                        elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona menos tu cadera"
+
+                                                        else:
+                                                            rec_right_hip_angle = ""
+
+                                                        if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona más tus rodillas"
+
+                                                        elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona menos tus rodillas"
+
+                                                        else:
+                                                            rec_right_knee_angle = ""
+
+                                                        final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_knee_angle
+                                                        print(final_rec)
 
                                                     elif start+1 == 2:
 
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
-                                                            except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                        if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
 
-                                                    elif start+1 == 3:
+                                                            rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
 
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
+                                                        elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
+
+                                                            rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
+
+                                                        else:
+
+                                                            rec_right_shoulder_angle = ""
+
+                                                        if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona más tu cadera"
+
+                                                        elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona menos tu cadera"
+
+                                                        else:
+
+                                                            rec_right_hip_angle = ""
+
+                                                        if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona más tus rodillas"
+
+                                                        elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona menos tus rodillas"
+
+                                                        else:
+                                                            rec_right_knee_angle = ""
+
+                                                        final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_knee_angle
+                                                        print(final_rec)
+
+                                                    if final_rec != "":
+
+                                                        if start+1 == 1:
                                                             try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
+
+                                                        elif start+1 == 2:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage1.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                        elif start+1 == 3:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage2.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                    # ************************ FIN SISTEMA DE RECOMENDACIONES ************************ #
+                                            #Ejerccio Frontplank
+                                            elif body_language_class == "front_plank" and body_language_prob_p > 25:
+                                                
+                                                print(f'body_language_prob_p: {body_language_prob_p}')
+                                                print(f'start: {start}')
+                                                print(f'df_trainers_angles: {df_trainers_angles}')
+                                                right_shoulder_angle_in=get_angle(df_trainers_angles, start, 'right_shoulder_angles')
+                                                print(f'right_shoulder_angle_in: {right_shoulder_angle_in}')
+                                                right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
+                                                print(f'right_hip_angle_in: {right_hip_angle_in}')
+                                                right_ankle_angle_in=get_angle(df_trainers_angles, start, 'right_ankle_angles')
+                                                print(f'right_ankle_angle_in: {right_ankle_angle_in}')
+                                                desv_right_shoulder_angle_in=get_desv_angle(df_trainers_angles, start, 'right_shoulder_angles')#15
+                                                print(f'desv_right_shoulder_angle_in: {desv_right_shoulder_angle_in}')
+                                                desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#15
+                                                print(f'desv_right_hip_angle: {desv_right_hip_angle_in}')
+                                                desv_right_ankle_angle_in=get_desv_angle(df_trainers_angles, start, 'right_ankle_angles')#15
+                                                print(f'desv_right_ankle_angle_in: {desv_right_ankle_angle_in}')
+
+                                                #SUMAR Y RESTAR UN RANGO DE 30 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
+                                                if  up == False and\
+                                                    down == False and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in-desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_ankle_angle in range(int(right_ankle_angle_in - desv_right_ankle_angle_in),int(right_ankle_angle_in + desv_right_ankle_angle_in + 1)):
+                                                    
+                                                    up = True
+                                                    stage = "Abajo"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage1.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    right_shoulder_angle,               #21 - float - right_shoulder_angles_fp
+                                                                                    right_hip_angle,                    #22 - float - right_hip_angles_fp
+                                                                                    right_ankle_angle,                  #23 - float - right_ankle_angles_fp
+                                                                                    None,    #24 - float - right_hip_angles_fl
+                                                                                    None,    #25 - float - right_knee_angles_fl
+                                                                                    None,    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ############################################ 
+                                                    print(f'right_shoulder_angle: {right_shoulder_angle}')
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_ankle_angle: {right_ankle_angle}')
+                                                    print(f'Paso Primera Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == True and\
+                                                    down == False and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in) , int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_ankle_angle in range(int(right_ankle_angle_in - desv_right_ankle_angle_in),int(right_ankle_angle_in + desv_right_ankle_angle_in + 1)):
+                                                    
+                                                    down = True
+                                                    stage = "Arriba"
+                                                    start +=1
+                                                    flagTime = True
+                                                    
+                                                elif up == True and\
+                                                    down == True and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in) , int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)) and\
+                                                    right_hip_angle in range(int(right_hip_angle_in - desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_ankle_angle in range(int(right_ankle_angle_in - desv_right_ankle_angle_in),int(right_ankle_angle_in + desv_right_ankle_angle_in + 1)):
+                                                    
+                                                    print(f'right_shoulder_angle: {right_shoulder_angle}')
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_ankle_angle: {right_ankle_angle}')
+                                                    print(f'Paso Tercera Pose')
+                                                    
+                                                    up = False
+                                                    down = False
+                                                    stage = "Abajo"
+                                                    start = 0
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage3.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    right_shoulder_angle,               #21 - float - right_shoulder_angles_fp
+                                                                                    right_hip_angle,                    #22 - float - right_hip_angles_fp
+                                                                                    right_ankle_angle,                  #23 - float - right_ankle_angles_fp
+                                                                                    None,    #24 - float - right_hip_angles_fl
+                                                                                    None,    #25 - float - right_knee_angles_fl
+                                                                                    None,    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ######################################s######
+                                                    st.session_state.count_rep += 1                                                
+                                                    placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
+                                                    st.session_state.count_pose = 0
+                                                    st.session_state.inicio_rutina = fin_rutina
+
+                                                else:
+
+                                                    # ************************ INICIO SISTEMA DE RECOMENDACIONES ************************ #
+
+                                                    if start+1 == 1 or start+1 == 3:
+                                                    
+                                                        if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
+
+                                                            rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
+
+                                                        elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
+
+                                                            rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
+
+                                                        else:
+                                                            rec_right_shoulder_angle = ""
+
+                                                        if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona más tu cadera"
+
+                                                        elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona menos tu cadera"
+
+                                                        else:
+                                                            rec_right_hip_angle = ""
+
+                                                        if right_ankle_angle > right_ankle_angle_in+desv_right_ankle_angle_in:
+
+                                                            rec_right_ankle_angle = ", flexiona más tu tobillo derecho"
+
+                                                        elif right_ankle_angle < right_ankle_angle_in-desv_right_ankle_angle_in:
+
+                                                            rec_right_ankle_angle = ", flexiona menos tu tobillo derecho"
+
+                                                        else:
+                                                            rec_right_ankle_angle = ""
+
+                                                        final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_ankle_angle
+                                                        print(final_rec)
+
+                                                    elif start+1 == 2:
+
+                                                        if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
+
+                                                            rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
+
+                                                        elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
+
+                                                            rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
+
+                                                        else:
+
+                                                            rec_right_shoulder_angle = ""
+
+                                                        if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona menos tu cadera"
+
+                                                        elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona más tu cadera"
+
+                                                        else:
+                                                            rec_right_hip_angle = ""
+
+                                                        if right_ankle_angle > right_ankle_angle_in+desv_right_ankle_angle_in:
+
+                                                            rec_right_ankle_angle = ", flexiona más tu tobillo derecho"
+
+                                                        elif right_ankle_angle < right_ankle_angle_in-desv_right_ankle_angle_in:
+
+                                                            rec_right_ankle_angle = ", flexiona menos tu tobillo derecho"
+
+                                                        else:
+                                                            rec_right_ankle_angle = ""
+
+                                                        final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_ankle_angle
+                                                        print(final_rec)
+
+                                                    if final_rec != "":
+
+                                                        if start+1 == 1:
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
+
+                                                        elif start+1 == 2:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage1.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                        elif start+1 == 3:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage2.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                    # ************************ FIN SISTEMA DE RECOMENDACIONES ************************ # 
+                                            
+                                            #Ejerccio forward_lunge
+                                            elif body_language_class == "forward_lunge" and body_language_prob_p > 20:
+
+                                                print(f'body_language_prob_p: {body_language_prob_p}')
+                                                print(f'start: {start}')
+                                                print(f'df_trainers_angles: {df_trainers_angles}')
+                                                right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
+                                                print(f'right_hip_angle_in: {right_hip_angle_in}')
+                                                right_knee_angle_in=get_angle(df_trainers_angles, start, 'right_knee_angles')
+                                                print(f'right_knee_angle_in: {right_knee_angle_in}')
+                                                left_knee_angle_in=get_angle(df_trainers_angles, start, 'left_knee_angles')
+                                                print(f'left_knee_angle_in: {left_knee_angle_in}')
+                                                desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#25
+                                                print(f'desv_right_hip_angle_in: {desv_right_hip_angle_in}')
+                                                desv_right_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'right_knee_angles')#25
+                                                print(f'desv_right_knee_angle_in: {desv_right_knee_angle_in}')
+                                                desv_left_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'left_knee_angles')#25
+                                                print(f'desv_left_knee_angle_in: {desv_left_knee_angle_in}')
+
+                                                # SUMAR Y RESTAR UN RANGO DE 30 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
+                                                if  up == False and\
+                                                    down == False and\
+                                                    right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
+                                                    
+                                                    up = True
+                                                    stage = "Arriba"
+                                                    start +=1
+                                                    ###########################################
+                                                    update_dashboard()
+                                                    speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage1.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    right_hip_angle,                    #24 - float - right_hip_angles_fl
+                                                                                    right_knee_angle,                   #25 - float - right_knee_angles_fl
+                                                                                    left_knee_angle,                    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ########################################### 
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Primera Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == True and\
+                                                    down == False and\
+                                                    right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
+                                                    left_knee_angle in range(int(left_knee_angle_in - desv_left_knee_angle_in), int(left_knee_angle_in + desv_left_knee_angle_in + 1)):
+                                                    
+                                                    down = True
+                                                    stage = "Abajo"
+                                                    start +=1
+                                                    ###########################################
+                                                    update_dashboard()
+                                                    speak_stage2 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage2.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    right_hip_angle,                    #24 - float - right_hip_angles_fl
+                                                                                    right_knee_angle,                   #25 - float - right_knee_angles_fl
+                                                                                    left_knee_angle,                    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ########################################### 
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'left_knee_angle: {left_knee_angle}')
+                                                    print(f'Paso Segunda Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == True and\
+                                                    down == True and\
+                                                    right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
+                                                    
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Tercera Pose')
+                                                    up = False
+                                                    down = True
+                                                    stage = "Arriba"
+                                                    start +=1
+                                                    ###########################################
+                                                    update_dashboard()
+                                                    speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage3.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    right_hip_angle,                    #24 - float - right_hip_angles_fl
+                                                                                    right_knee_angle,                   #25 - float - right_knee_angles_fl
+                                                                                    left_knee_angle,                    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                    #####################################s######
+                                                elif up == False and\
+                                                    down == True and\
+                                                    mid == False and\
+                                                    right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
+                                                    left_knee_angle in range(int(left_knee_angle_in - desv_left_knee_angle_in), int(left_knee_angle_in + desv_left_knee_angle_in + 1)):
+                                                    
+                                                    mid = True
+                                                    stage = "Abajo"
+                                                    start +=1
+                                                    ###########################################
+                                                    update_dashboard()
+                                                    speak_stage4 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage4.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    right_hip_angle,                    #24 - float - right_hip_angles_fl
+                                                                                    right_knee_angle,                   #25 - float - right_knee_angles_fl
+                                                                                    left_knee_angle,                    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ########################################### 
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'left_knee_angle: {left_knee_angle}')
+                                                    print(f'Paso Cuarta Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == False and\
+                                                    down == True and\
+                                                    mid == True and\
+                                                    right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)):
+                                                    
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'Paso Quinta Pose')
+
+                                                    up = False
+                                                    down = False
+                                                    mid = False
+                                                    stage = "Arriba"
+                                                    start = 0
+                                                    ###########################################
+                                                    update_dashboard()
+                                                    speak_stage5 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage5.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    right_hip_angle,                    #24 - float - right_hip_angles_fl
+                                                                                    right_knee_angle,                   #25 - float - right_knee_angles_fl
+                                                                                    left_knee_angle,                    #26 - float - left_knee_angles_fl
+                                                                                    None,    #27 - float - right_shoulder_angles_bd
+                                                                                    None,    #28 - float - right_hip_angles_bd
+                                                                                    None,    #29 - float - right_knee_angles_bd
+                                                                                    None,    #30 - float - left_knee_angles_bd
+                                                                                    None,    #31 - float - right_elbow_angles_bd
+                                                                                    None,    #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    #####################################s######
+                                                    st.session_state.count_rep += 1
+                                                    placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
+                                                    st.session_state.count_pose = 0
+                                                    st.session_state.inicio_rutina = fin_rutina                                                
+
+                                                else:
+
+                                                    # ************************ INICIO SISTEMA DE RECOMENDACIONES ************************ #
+
+                                                    if st.session_state.count_pose+1 == 1 or st.session_state.count_pose+1 == 3 or st.session_state.count_pose+1 == 5:
+
+                                                        if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
+                                                            (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
+
+                                                            rec_right_hip_angle = "Mantén tu cadera recta"
+
+                                                        else:
+
+                                                            rec_right_hip_angle = ""
+
+                                                        if (right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in) or\
+                                                            (right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in):
+
+                                                            if rec_right_hip_angle != "":
+
+                                                                rec_right_hip_angle = "Mantén tu cadera"
+                                                                rec_right_knee_angle = " y tu rodilla derecha recta"
+
+                                                            else:
+
+                                                                rec_right_knee_angle = "Mantén tu rodilla derecha recta"
+                                                        else:
+
+                                                            rec_right_knee_angle = ""
+
+                                                        final_rec = rec_right_hip_angle+rec_right_knee_angle
+                                                        print(final_rec)
+                                
+
+                                                    elif st.session_state.count_pose+1 == 2:
+
+                                                        if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in) or\
+                                                            (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
+
+                                                            rec_right_hip_angle = "Mantén tu cadera recta"
+
+                                                        else:
+
+                                                            rec_right_hip_angle = ""
+
+                                                        if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
+                                                                
+                                                            rec_right_knee_angle = ", flexiona más tu rodilla derecha manteniendola hacia Abajo"
+
+                                                        elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
+            
+                                                            rec_right_knee_angle = ", flexiona menos tu rodilla derecha manteniendola hacia Abajo"                                                    
+
+                                                        else:
+
+                                                            rec_right_knee_angle = ""
+
+                                                        if left_knee_angle > left_knee_angle_in+desv_left_knee_angle_in:
+
+                                                            rec_left_knee_angle = ", flexiona más tu rodilla izquierda manteniendola frente a tu cadera"
+
+                                                        elif left_knee_angle < left_knee_angle_in-desv_left_knee_angle_in:
+
+                                                            rec_left_knee_angle = ", flexiona menos tu rodilla izquierda manteniendola frente a tu cadera"                                                    
+
+                                                        else:
+
+                                                            rec_left_knee_angle = ""
+                                                        
+                                                        final_rec = rec_right_hip_angle+rec_right_knee_angle+rec_left_knee_angle
+                                                        print(final_rec)
+
+                                                    elif st.session_state.count_pose+1 == 4:
+
+                                                        if (right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in):
+                                                            
+                                                            rec_right_hip_angle = "Flexiona más tu cadera"
+
+                                                        elif (right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in):
+
+                                                            rec_right_hip_angle = "Flexiona menos tu cadera"
+
+                                                        else:
+
+                                                            rec_right_hip_angle = ""
+
+                                                        if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona más tu rodilla derecha manteniendola frente a tu cadera"
+
+                                                        elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona menos tu rodilla derecha manteniendola frente a tu cadera"                                                    
+                                                        
+                                                        else:
+
+                                                            rec_right_knee_angle = ""
+
+                                                        if left_knee_angle > left_knee_angle_in+desv_left_knee_angle_in:
+
+                                                            rec_left_knee_angle = ", flexiona más tu rodilla izquierda manteniendola hacia Abajo"
+
+                                                        elif left_knee_angle < left_knee_angle_in-desv_left_knee_angle_in:
+
+                                                            rec_left_knee_angle = ", flexiona menos tu rodilla izquierda manteniendola hacia Abajo"                                                    
+
+                                                        else:
+
+                                                            rec_left_knee_angle = ""
+
+                                                        final_rec = rec_right_hip_angle+rec_right_knee_angle+rec_left_knee_angle
+                                                        print(final_rec)
+
+                                                    if final_rec != "":
+
+                                                        if st.session_state.count_pose+1 == 1:
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
+
+                                                        elif st.session_state.count_pose+1 == 2:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage1.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                        elif st.session_state.count_pose+1 == 3:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage2.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                        elif st.session_state.count_pose+1 == 4:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage3.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                        elif st.session_state.count_pose+1 == 5:
+
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage4.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
+
+                                                    # ************************ FIN SISTEMA DE RECOMENDACIONES ************************ #
+                                            
+                                            #Ejerccio bird_dog
+                                            elif body_language_class == "bird_dog" and body_language_prob_p > 20:
+
+                                                print(f'body_language_prob_p: {body_language_prob_p}')
+                                                print(f'start: {start}')
+                                                right_shoulder_angle_in=get_angle(df_trainers_angles, start, 'right_shoulder_angles')
+                                                print(f'right_shoulder_angle_in: {right_shoulder_angle_in}')
+                                                right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
+                                                print(f'right_hip_angle_in: {right_hip_angle_in}')
+                                                right_knee_angle_in=get_angle(df_trainers_angles, start, 'right_knee_angles')
+                                                print(f'right_knee_angle_in: {right_knee_angle_in}')
+                                                left_knee_angle_in=get_angle(df_trainers_angles, start, 'left_knee_angles')
+                                                print(f'left_knee_angle_in: {left_knee_angle_in}')
+                                                right_elbow_angle_in=get_angle(df_trainers_angles, start, 'right_elbow_angles')
+                                                print(f'right_elbow_angle_in: {right_elbow_angle_in}')
+                                                left_elbow_angle_in=get_angle(df_trainers_angles, start, 'left_elbow_angles')
+                                                print(f'left_elbow_angle_in: {left_elbow_angle_in}')
+                                                
+                                                desv_right_shoulder_angle_in=get_desv_angle(df_trainers_angles, start, 'right_shoulder_angles')#25
+                                                print(f'desv_right_shoulder_angle_in: {desv_right_shoulder_angle_in}')
+                                                desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#25
+                                                print(f'desv_right_hip_angle_in: {desv_right_hip_angle_in}')
+                                                desv_right_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'right_knee_angles')#25
+                                                print(f'desv_right_knee_angle_in: {desv_right_knee_angle_in}')
+                                                desv_left_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'left_knee_angles')#25
+                                                print(f'desv_left_knee_angle_in: {desv_left_knee_angle_in}')
+                                                desv_right_elbow_angle_in=get_desv_angle(df_trainers_angles, start, 'right_elbow_angles')#25
+                                                print(f'desv_right_elbow_angle_in: {desv_right_elbow_angle_in}')
+                                                desv_left_elbow_angle_in=get_desv_angle(df_trainers_angles, start, 'left_elbow_angles')#25
+                                                print(f'desv_left_elbow_angle_in: {desv_left_elbow_angle_in}')
+
+                                                #SUMAR Y RESTAR UN RANGO DE 30 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
+                                                if  up == False and\
+                                                    down == False and\
+                                                    right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)):
+                                                    
+                                                    up = True
+                                                    stage = "Abajo"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage1 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage1.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set +1,      #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    None,   #24 - float - right_hip_angles_fl
+                                                                                    None,   #25 - float - right_knee_angles_fl
+                                                                                    None,   #26 - float - left_knee_angles_fl
+                                                                                    right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
+                                                                                    right_hip_angle,                    #28 - float - right_hip_angles_bd
+                                                                                    right_knee_angle,                   #29 - float - right_knee_angles_bd
+                                                                                    left_knee_angle,                    #30 - float - left_knee_angles_bd
+                                                                                    right_elbow_angle,                  #31 - float - right_elbow_angles_bd
+                                                                                    left_elbow_angle,                   #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ############################################ 
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'right_shoulder_angle: {right_shoulder_angle}')
+                                                    print(f'Paso Primera Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == True and\
+                                                    down == False and\
+                                                    left_knee_angle in range(int(left_knee_angle_in-desv_left_knee_angle_in), int(left_knee_angle_in + desv_left_knee_angle_in + 1)) and\
+                                                    right_elbow_angle in range(int(right_elbow_angle_in - desv_right_elbow_angle_in), int(right_elbow_angle_in + desv_right_knee_angle_in + 1)):
+                                                    
+                                                    down = True
+                                                    stage = "Arriba"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage2 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage2.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    None,   #24 - float - right_hip_angles_fl
+                                                                                    None,   #25 - float - right_knee_angles_fl
+                                                                                    None,   #26 - float - left_knee_angles_fl
+                                                                                    right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
+                                                                                    right_hip_angle,                    #28 - float - right_hip_angles_bd
+                                                                                    right_knee_angle,                   #29 - float - right_knee_angles_bd
+                                                                                    left_knee_angle,                    #30 - float - left_knee_angles_bd
+                                                                                    right_elbow_angle,                  #31 - float - right_elbow_angles_bd
+                                                                                    left_elbow_angle,                   #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ############################################ 
+                                                    print(f'left_knee_angle: {left_knee_angle}')
+                                                    print(f'right_elbow_angle: {right_elbow_angle}')
+                                                    print(f'Paso Segunda Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina                                            
+                                                elif up == True and\
+                                                    down == True and\
+                                                    right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)):
+                                                    
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'right_shoulder_angle: {right_shoulder_angle}')
+                                                    print(f'Paso Tercera Pose')
+                                                    up = False
+                                                    down = True
+                                                    stage = "Abajo"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage3 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage3.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    None,   #24 - float - right_hip_angles_fl
+                                                                                    None,   #25 - float - right_knee_angles_fl
+                                                                                    None,   #26 - float - left_knee_angles_fl
+                                                                                    right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
+                                                                                    right_hip_angle,                    #28 - float - right_hip_angles_bd
+                                                                                    right_knee_angle,                   #29 - float - right_knee_angles_bd
+                                                                                    left_knee_angle,                    #30 - float - left_knee_angles_bd
+                                                                                    right_elbow_angle,                  #31 - float - right_elbow_angles_bd
+                                                                                    left_elbow_angle,                   #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ######################################s######
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == False and\
+                                                    down == True and\
+                                                    mid == False and\
+                                                    right_knee_angle in range(int(right_knee_angle_in-desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
+                                                    left_elbow_angle in range(int(left_elbow_angle_in - desv_left_elbow_angle_in), int(left_elbow_angle_in + desv_left_elbow_angle_in + 1)):
+                                                    
+                                                    mid = True
+                                                    stage = "Arriba"
+                                                    start +=1
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage4 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage4.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16- float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    None,   #24 - float - right_hip_angles_fl
+                                                                                    None,   #25 - float - right_knee_angles_fl
+                                                                                    None,   #26 - float - left_knee_angles_fl
+                                                                                    right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
+                                                                                    right_hip_angle,                    #28 - float - right_hip_angles_bd
+                                                                                    right_knee_angle,                   #29 - float - right_knee_angles_bd
+                                                                                    left_knee_angle,                    #30 - float - left_knee_angles_bd
+                                                                                    right_elbow_angle,                  #31 - float - right_elbow_angles_bd
+                                                                                    left_elbow_angle,                   #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ############################################ 
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'left_elbow_angle: {left_elbow_angle}')
+                                                    print(f'Paso Cuarta Pose')
+                                                    st.session_state.inicio_rutina = fin_rutina
+                                                elif up == False and\
+                                                    down == True and\
+                                                    mid == True and\
+                                                    right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
+                                                    right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
+                                                    right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)):
+                                                    
+                                                    print(f'right_hip_angle: {right_hip_angle}')
+                                                    print(f'right_knee_angle: {right_knee_angle}')
+                                                    print(f'right_shoulder_angle: {right_shoulder_angle}')
+                                                    print(f'Paso Quinta Pose')
+                                                    
+                                                    up = False
+                                                    down = False
+                                                    mid = False
+                                                    stage = "Abajo"
+                                                    start = 0
+                                                    ############################################
+                                                    update_dashboard()
+                                                    speak_stage5 = threading.Thread(target=speak, args=(stage,))
+                                                    speak_stage5.start()
+                                                    fin_rutina = get_timestap_log()
+                                                    df_results = ut.add_row_df_results(df_results,
+                                                                                    id_exercise,                        #1 - str - id_exercise
+
+                                                                                    st.session_state.inicio_rutina,     #2 - str - DateTime_Start
+                                                                                    fin_rutina,                         #3 - str - DateTime_End
+
+                                                                                    st.session_state.n_poses,           #4 - int - n_poses
+                                                                                    st.session_state.n_sets,            #5 - int - n_sets
+                                                                                    st.session_state.n_reps,            #6 - int - n_reps
+                                                                                    st.session_state.total_poses,       #7 - int - total_poses
+                                                                                    st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
+                                                                                    body_language_class,                #9 - str - Class
+                                                                                    body_language_prob_p,               #10 - float - Prob
+                                                                                    st.session_state.count_pose_g,      #11 - int - count_pose_g
+                                                                                    st.session_state.count_pose,        #12 - int - count_pose
+                                                                                    st.session_state.count_rep + 1,     #13 - int - count_rep
+                                                                                    st.session_state.count_set + 1,     #14 - int - count_set
+                                                                                    None,   #15 - float - right_elbow_angles_pu
+                                                                                    None,   #16 - float - right_hip_angles_pu
+                                                                                    None,   #17 - float - right_knee_angles_pu
+                                                                                    None,   #18 - float - right_shoulder_angles_cu
+                                                                                    None,   #19 - float - right_hip_angles_cu
+                                                                                    None,   #20 - float - right_knee_angles_cu
+                                                                                    None,   #21 - float - right_shoulder_angles_fp
+                                                                                    None,   #22 - float - right_hip_angles_fp
+                                                                                    None,   #23 - float - right_ankle_angles_fp
+                                                                                    None,   #24 - float - right_hip_angles_fl
+                                                                                    None,   #25 - float - right_knee_angles_fl
+                                                                                    None,   #26 - float - left_knee_angles_fl
+                                                                                    right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
+                                                                                    right_hip_angle,                    #28 - float - right_hip_angles_bd
+                                                                                    right_knee_angle,                   #29 - float - right_knee_angles_bd
+                                                                                    left_knee_angle,                    #30 - float - left_knee_angles_bd
+                                                                                    right_elbow_angle,                  #31 - float - right_elbow_angles_bd
+                                                                                    left_elbow_angle,                   #32 - float - left_elbow_angles_bd
+                                                                                    pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
+                                                                                    pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
+                                                                                    pose_user_cost                      #35 - float - pose_user_cost
+                                                    )
+                                                    ######################################s######
+                                                    st.session_state.count_rep += 1
+                                                    placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
+                                                    st.session_state.count_pose = 0
+                                                    st.session_state.inicio_rutina = fin_rutina
+
+                                                else:
+
+                                                    # ************************ INICIO SISTEMA DE RECOMENDACIONES ************************ #
+
+                                                    if start+1 == 1 or start+1 == 3 or start+1 == 5 : 
+
+                                                        if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
+
+                                                            rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
+
+                                                        elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
+
+                                                            rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
+
+                                                        else:
+
+                                                            rec_right_shoulder_angle = ""
+
+                                                        if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona más tu cadera"
+
+                                                        elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
+
+                                                            rec_right_hip_angle = ", flexiona menos tu cadera"
+
+                                                        else:
+                                                            rec_right_hip_angle = ""
+
+                                                        if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona más tu rodilla derecha"
+                                                        
+                                                        elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona menos tu rodilla derecha"
+
+                                                        else:
+
+                                                            rec_right_knee_angle = ""
+
+                                                        final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_knee_angle
+                                                        print(final_rec)
+
+                                                    elif start+1 == 2:
+                                                        if right_elbow_angle > right_elbow_angle_in+desv_right_elbow_angle_in:
+
+                                                            rec_right_elbow_angle = "Flexiona más tu codo derecho"
+
+                                                        elif right_elbow_angle < right_elbow_angle_in-desv_right_elbow_angle_in:
+
+                                                            rec_right_elbow_angle = "Flexiona menos tu codo derecho"
+
+                                                        else:
+
+                                                            rec_right_elbow_angle = ""
+
+                                                        if left_knee_angle > left_knee_angle_in+desv_left_knee_angle_in:
+
+                                                            rec_left_knee_angle = ", flexiona más tu rodilla izquierda"
+
+                                                        elif left_knee_angle < left_knee_angle_in-desv_left_knee_angle_in:
+
+                                                            rec_left_knee_angle = ", flexiona menos tu rodilla izquierda"
+
+                                                        else:
+
+                                                            rec_left_knee_angle = ""
+
+                                                        final_rec = rec_right_elbow_angle+rec_left_knee_angle
+                                                        print(final_rec)
 
                                                     elif start+1 == 4:
 
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
+                                                        if left_elbow_angle > left_elbow_angle_in+desv_left_elbow_angle_in:
+
+                                                            rec_left_elbow_angle = "Flexiona más tu codo izquierdo"
+
+                                                        elif left_elbow_angle < left_elbow_angle_in-desv_left_elbow_angle_in:
+
+                                                            rec_left_elbow_angle = "Flexiona menos tu codo izquierdo"
+
+                                                        else:
+
+                                                            rec_left_elbow_angle = ""
+
+                                                        if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona más tu rodilla derecha"
+
+                                                        elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
+
+                                                            rec_right_knee_angle = ", flexiona menos tu rodilla derecha"
+
+                                                        else:
+
+                                                            rec_right_knee_angle = ""
+
+                                                        final_rec = rec_left_elbow_angle+rec_right_knee_angle
+                                                        print(final_rec)
+
+                                                    if final_rec != "":
+
+                                                        if start+1 == 1:
                                                             try:
-                                                                if not speak_t3.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                speak_rec.start()
 
-                                                    elif start+1 == 5:
+                                                        elif start+1 == 2:
 
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
                                                             try:
-                                                                if not speak_t4.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
                                                             except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
+                                                                try:
+                                                                    if not speak_stage1.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
 
-                                                # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ #
-                                        
-                                        #Ejerccio bird_dog
-                                        elif body_language_class == "bird_dog" and body_language_prob_p > 20:
+                                                        elif start+1 == 3:
 
-                                            print(f'body_language_prob_p: {body_language_prob_p}')
-                                            print(f'start: {start}')
-                                            right_shoulder_angle_in=get_angle(df_trainers_angles, start, 'right_shoulder_angles')
-                                            print(f'right_shoulder_angle_in: {right_shoulder_angle_in}')
-                                            right_hip_angle_in=get_angle(df_trainers_angles, start, 'right_hip_angles')
-                                            print(f'right_hip_angle_in: {right_hip_angle_in}')
-                                            right_knee_angle_in=get_angle(df_trainers_angles, start, 'right_knee_angles')
-                                            print(f'right_knee_angle_in: {right_knee_angle_in}')
-                                            left_knee_angle_in=get_angle(df_trainers_angles, start, 'left_knee_angles')
-                                            print(f'left_knee_angle_in: {left_knee_angle_in}')
-                                            right_elbow_angle_in=get_angle(df_trainers_angles, start, 'right_elbow_angles')
-                                            print(f'right_elbow_angle_in: {right_elbow_angle_in}')
-                                            left_elbow_angle_in=get_angle(df_trainers_angles, start, 'left_elbow_angles')
-                                            print(f'left_elbow_angle_in: {left_elbow_angle_in}')
-                                            
-                                            desv_right_shoulder_angle_in=get_desv_angle(df_trainers_angles, start, 'right_shoulder_angles')#25
-                                            print(f'desv_right_shoulder_angle_in: {desv_right_shoulder_angle_in}')
-                                            desv_right_hip_angle_in=get_desv_angle(df_trainers_angles, start, 'right_hip_angles')#25
-                                            print(f'desv_right_hip_angle_in: {desv_right_hip_angle_in}')
-                                            desv_right_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'right_knee_angles')#25
-                                            print(f'desv_right_knee_angle_in: {desv_right_knee_angle_in}')
-                                            desv_left_knee_angle_in=get_desv_angle(df_trainers_angles, start, 'left_knee_angles')#25
-                                            print(f'desv_left_knee_angle_in: {desv_left_knee_angle_in}')
-                                            desv_right_elbow_angle_in=get_desv_angle(df_trainers_angles, start, 'right_elbow_angles')#25
-                                            print(f'desv_right_elbow_angle_in: {desv_right_elbow_angle_in}')
-                                            desv_left_elbow_angle_in=get_desv_angle(df_trainers_angles, start, 'left_elbow_angles')#25
-                                            print(f'desv_left_elbow_angle_in: {desv_left_elbow_angle_in}')
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage2.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
 
-                                            #SUMAR Y RESTAR UN RANGO DE 30 PARA EL ANGULO DE CADA POSE PARA UTILIZARLO COMO RANGO 
-                                            if  up == False and\
-                                                down == False and\
-                                                right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)):
-                                                
-                                                up = True
-                                                stage = "Abajo"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t1 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t1.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
+                                                        elif start+1 == 4:
 
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage3.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
 
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set +1,      #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                None,   #24 - float - right_hip_angles_fl
-                                                                                None,   #25 - float - right_knee_angles_fl
-                                                                                None,   #26 - float - left_knee_angles_fl
-                                                                                right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
-                                                                                right_hip_angle,                    #28 - float - right_hip_angles_bd
-                                                                                right_knee_angle,                   #29 - float - right_knee_angles_bd
-                                                                                left_knee_angle,                    #30 - float - left_knee_angles_bd
-                                                                                right_elbow_angle,                  #31 - float - right_elbow_angles_bd
-                                                                                left_elbow_angle,                   #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ############################################ 
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'right_shoulder_angle: {right_shoulder_angle}')
-                                                print(f'Paso Primera Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == True and\
-                                                down == False and\
-                                                left_knee_angle in range(int(left_knee_angle_in-desv_left_knee_angle_in), int(left_knee_angle_in + desv_left_knee_angle_in + 1)) and\
-                                                right_elbow_angle in range(int(right_elbow_angle_in - desv_right_elbow_angle_in), int(right_elbow_angle_in + desv_right_knee_angle_in + 1)):
-                                                
-                                                down = True
-                                                stage = "Arriba"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t2 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t2.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
+                                                        elif start+1 == 5:
 
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
+                                                            try:
+                                                                if not speak_rec.is_alive():
+                                                                    speak_rec.start()
+                                                            except:
+                                                                try:
+                                                                    if not speak_stage4.is_alive():
+                                                                        speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                        speak_rec.start()
+                                                                except:
+                                                                    speak_rec = threading.Thread(target=speak, args=(final_rec,))
+                                                                    speak_rec.start()
 
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                None,   #24 - float - right_hip_angles_fl
-                                                                                None,   #25 - float - right_knee_angles_fl
-                                                                                None,   #26 - float - left_knee_angles_fl
-                                                                                right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
-                                                                                right_hip_angle,                    #28 - float - right_hip_angles_bd
-                                                                                right_knee_angle,                   #29 - float - right_knee_angles_bd
-                                                                                left_knee_angle,                    #30 - float - left_knee_angles_bd
-                                                                                right_elbow_angle,                  #31 - float - right_elbow_angles_bd
-                                                                                left_elbow_angle,                   #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ############################################ 
-                                                print(f'left_knee_angle: {left_knee_angle}')
-                                                print(f'right_elbow_angle: {right_elbow_angle}')
-                                                print(f'Paso Segunda Pose')
-                                                st.session_state.inicio_rutina = fin_rutina                                            
-                                            elif up == True and\
-                                                down == True and\
-                                                right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)):
-                                                
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'right_shoulder_angle: {right_shoulder_angle}')
-                                                print(f'Paso Tercera Pose')
-                                                up = False
-                                                down = True
-                                                stage = "Abajo"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t3 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t3.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                None,   #24 - float - right_hip_angles_fl
-                                                                                None,   #25 - float - right_knee_angles_fl
-                                                                                None,   #26 - float - left_knee_angles_fl
-                                                                                right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
-                                                                                right_hip_angle,                    #28 - float - right_hip_angles_bd
-                                                                                right_knee_angle,                   #29 - float - right_knee_angles_bd
-                                                                                left_knee_angle,                    #30 - float - left_knee_angles_bd
-                                                                                right_elbow_angle,                  #31 - float - right_elbow_angles_bd
-                                                                                left_elbow_angle,                   #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ######################################s######
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == False and\
-                                                down == True and\
-                                                mid == False and\
-                                                right_knee_angle in range(int(right_knee_angle_in-desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
-                                                left_elbow_angle in range(int(left_elbow_angle_in - desv_left_elbow_angle_in), int(left_elbow_angle_in + desv_left_elbow_angle_in + 1)):
-                                                
-                                                mid = True
-                                                stage = "Arriba"
-                                                start +=1
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t4 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t4.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
-
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16- float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                None,   #24 - float - right_hip_angles_fl
-                                                                                None,   #25 - float - right_knee_angles_fl
-                                                                                None,   #26 - float - left_knee_angles_fl
-                                                                                right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
-                                                                                right_hip_angle,                    #28 - float - right_hip_angles_bd
-                                                                                right_knee_angle,                   #29 - float - right_knee_angles_bd
-                                                                                left_knee_angle,                    #30 - float - left_knee_angles_bd
-                                                                                right_elbow_angle,                  #31 - float - right_elbow_angles_bd
-                                                                                left_elbow_angle,                   #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ############################################ 
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'left_elbow_angle: {left_elbow_angle}')
-                                                print(f'Paso Cuarta Pose')
-                                                st.session_state.inicio_rutina = fin_rutina
-                                            elif up == False and\
-                                                down == True and\
-                                                mid == True and\
-                                                right_hip_angle in range(int(right_hip_angle_in-desv_right_hip_angle_in), int(right_hip_angle_in + desv_right_hip_angle_in + 1)) and\
-                                                right_knee_angle in range(int(right_knee_angle_in - desv_right_knee_angle_in), int(right_knee_angle_in + desv_right_knee_angle_in + 1)) and\
-                                                right_shoulder_angle in range(int(right_shoulder_angle_in - desv_right_shoulder_angle_in), int(right_shoulder_angle_in + desv_right_shoulder_angle_in + 1)):
-                                                
-                                                print(f'right_hip_angle: {right_hip_angle}')
-                                                print(f'right_knee_angle: {right_knee_angle}')
-                                                print(f'right_shoulder_angle: {right_shoulder_angle}')
-                                                print(f'Paso Quinta Pose')
-                                                
+                                                    # ************************ FIN SISTEMA DE RECOMENDACIONES ************************ #
+                                            else:
+                                                stage = ""
+                                                start = 0
                                                 up = False
                                                 down = False
                                                 mid = False
-                                                stage = "Abajo"
-                                                start = 0
-                                                ############################################
-                                                update_dashboard()
-                                                speak_t5 = threading.Thread(target=speak, args=(stage,))
-                                                speak_t5.start()
-                                                fin_rutina = get_timestap_log()
-                                                df_results = ut.add_row_df_results(df_results,
-                                                                                id_exercise,                        #1 - str - id_exercise
+                                                st.session_state.count_pose_g = 0 
+                                                st.session_state.count_pose = 0 
+                                                print(f'Salio')
+                                        #else:
 
-                                                                                st.session_state.inicio_rutina,     #2 - str - DateTime_Start
-                                                                                fin_rutina,                         #3 - str - DateTime_End
-
-                                                                                st.session_state.n_poses,           #4 - int - n_poses
-                                                                                st.session_state.n_sets,            #5 - int - n_sets
-                                                                                st.session_state.n_reps,            #6 - int - n_reps
-                                                                                st.session_state.total_poses,       #7 - int - total_poses
-                                                                                st.session_state.seconds_rest_time, #8 - int - seconds_rest_time
-                                                                                body_language_class,                #9 - str - Class
-                                                                                body_language_prob_p,               #10 - float - Prob
-                                                                                st.session_state.count_pose_g,      #11 - int - count_pose_g
-                                                                                st.session_state.count_pose,        #12 - int - count_pose
-                                                                                st.session_state.count_rep + 1,     #13 - int - count_rep
-                                                                                st.session_state.count_set + 1,     #14 - int - count_set
-                                                                                None,   #15 - float - right_elbow_angles_pu
-                                                                                None,   #16 - float - right_hip_angles_pu
-                                                                                None,   #17 - float - right_knee_angles_pu
-                                                                                None,   #18 - float - right_shoulder_angles_cu
-                                                                                None,   #19 - float - right_hip_angles_cu
-                                                                                None,   #20 - float - right_knee_angles_cu
-                                                                                None,   #21 - float - right_shoulder_angles_fp
-                                                                                None,   #22 - float - right_hip_angles_fp
-                                                                                None,   #23 - float - right_ankle_angles_fp
-                                                                                None,   #24 - float - right_hip_angles_fl
-                                                                                None,   #25 - float - right_knee_angles_fl
-                                                                                None,   #26 - float - left_knee_angles_fl
-                                                                                right_shoulder_angle,               #27 - float - right_shoulder_angles_bd
-                                                                                right_hip_angle,                    #28 - float - right_hip_angles_bd
-                                                                                right_knee_angle,                   #29 - float - right_knee_angles_bd
-                                                                                left_knee_angle,                    #30 - float - left_knee_angles_bd
-                                                                                right_elbow_angle,                  #31 - float - right_elbow_angles_bd
-                                                                                left_elbow_angle,                   #32 - float - left_elbow_angles_bd
-                                                                                pose_trainer_cost_min,              #33 - float - pose_trainer_cost_min
-                                                                                pose_trainer_cost_max,              #34 - float - pose_trainer_cost_max
-                                                                                pose_user_cost                      #35 - float - pose_user_cost
-                                                )
-                                                ######################################s######
-                                                st.session_state.count_rep += 1
-                                                placeholder_rep.metric("REPETITION", str(st.session_state.count_rep) + " / "+ str(st.session_state.n_reps), "+1 rep")
-                                                st.session_state.count_pose = 0
-                                                st.session_state.inicio_rutina = fin_rutina
-
-                                            else:
-
-                                                # ************************ INICIO SISTEMA DE ECOMENDACIONES ************************ #
-
-                                                if start+1 == 1 or start+1 == 3 or start+1 == 5 : 
-
-                                                    if right_shoulder_angle > right_shoulder_angle_in+desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona más tu hombro derecho"
-
-                                                    elif right_shoulder_angle < right_shoulder_angle_in-desv_right_shoulder_angle_in:
-
-                                                        rec_right_shoulder_angle = "Flexiona menos tu hombro derecho"
-
-                                                    else:
-
-                                                        rec_right_shoulder_angle = ""
-
-                                                    if right_hip_angle > right_hip_angle_in+desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona más tu cadera"
-
-                                                    elif right_hip_angle < right_hip_angle_in-desv_right_hip_angle_in:
-
-                                                        rec_right_hip_angle = ", flexiona menos tu cadera"
-
-                                                    else:
-                                                        rec_right_hip_angle = ""
-
-                                                    if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona más tu rodilla derecha"
-                                                    
-                                                    elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona menos tu rodilla derecha"
-
-                                                    else:
-
-                                                        rec_right_knee_angle = ""
-
-                                                    final_rec = rec_right_shoulder_angle+rec_right_hip_angle+rec_right_knee_angle
-                                                    print(final_rec)
-
-                                                elif start+1 == 2:
-                                                    if right_elbow_angle > right_elbow_angle_in+desv_right_elbow_angle_in:
-
-                                                        rec_right_elbow_angle = "Flexiona más tu codo derecho"
-
-                                                    elif right_elbow_angle < right_elbow_angle_in-desv_right_elbow_angle_in:
-
-                                                        rec_right_elbow_angle = "Flexiona menos tu codo derecho"
-
-                                                    else:
-
-                                                        rec_right_elbow_angle = ""
-
-                                                    if left_knee_angle > left_knee_angle_in+desv_left_knee_angle_in:
-
-                                                        rec_left_knee_angle = ", flexiona más tu rodilla izquierda"
-
-                                                    elif left_knee_angle < left_knee_angle_in-desv_left_knee_angle_in:
-
-                                                        rec_left_knee_angle = ", flexiona menos tu rodilla izquierda"
-
-                                                    else:
-
-                                                        rec_left_knee_angle = ""
-
-                                                    final_rec = rec_right_elbow_angle+rec_left_knee_angle
-                                                    print(final_rec)
-
-                                                elif start+1 == 4:
-
-                                                    if left_elbow_angle > left_elbow_angle_in+desv_left_elbow_angle_in:
-
-                                                        rec_left_elbow_angle = "Flexiona más tu codo izquierdo"
-
-                                                    elif left_elbow_angle < left_elbow_angle_in-desv_left_elbow_angle_in:
-
-                                                        rec_left_elbow_angle = "Flexiona menos tu codo izquierdo"
-
-                                                    else:
-
-                                                        rec_left_elbow_angle = ""
-
-                                                    if right_knee_angle > right_knee_angle_in+desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona más tu rodilla derecha"
-
-                                                    elif right_knee_angle < right_knee_angle_in-desv_right_knee_angle_in:
-
-                                                        rec_right_knee_angle = ", flexiona menos tu rodilla derecha"
-
-                                                    else:
-
-                                                        rec_right_knee_angle = ""
-
-                                                    final_rec = rec_left_elbow_angle+rec_right_knee_angle
-                                                    print(final_rec)
-
-                                                if final_rec != "":
-
-                                                    if start+1 == 1:
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
-                                                            speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                            speak_t6.start()
-
-                                                    elif start+1 == 2:
-
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t1.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
-                                                            except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
-
-                                                    elif start+1 == 3:
-
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t2.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
-                                                            except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
-
-                                                    elif start+1 == 4:
-
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t3.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
-                                                            except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
-
-                                                    elif start+1 == 5:
-
-                                                        try:
-                                                            if not speak_t6.is_alive():
-                                                                speak_t6.start()
-                                                        except:
-                                                            try:
-                                                                if not speak_t4.is_alive():
-                                                                    speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                    speak_t6.start()
-                                                            except:
-                                                                speak_t6 = threading.Thread(target=speak, args=(final_rec,))
-                                                                speak_t6.start()
-
-                                                # ************************ FIN SISTEMA DE ECOMENDACIONES ************************ #
-                                        else:
-                                            stage = ""
-                                            start = 0
-                                            up = False
-                                            down = False
-                                            mid = False
-                                            st.session_state.count_pose_g = 0 
-                                            st.session_state.count_pose = 0 
-                                            print(f'Salio')
                                         
                                         #Codigo para actualizar pantalla por repeticiones
 
@@ -2871,7 +2906,6 @@ if authentication_status:
                                         cv2.putText(image, str(body_language_prob_p), 
                                                     (150,467), 
                                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 2, cv2.LINE_AA)
-
                                     
                                         if body_language_class == "push_up": 
                                             cv2.line(image, (right_arm_x1, right_arm_y1), (right_arm_x2, right_arm_y2), (242, 14, 14), 3)
@@ -2941,16 +2975,15 @@ if authentication_status:
                                             cv2.circle(image, (right_ankle_x3, right_ankle_y3), 6, (128, 0, 255),-1)
                                             cv2.putText(image, str(int(right_ankle_angle)), (right_ankle_x2 + 30, right_ankle_y2), 1, 1.5, (128, 0, 250), 2)
                                             if start == 2 and flagTime == True:
-                                                mifrontplank = "Mantenga la posicion" + str(st.session_state.seconds_rest_time) + " segundos"
-                                                cv2.putText(image, 'WAIT FOR ' + str(st.session_state.seconds_rest_time) + ' s' , (155,350), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255,0,0), 3, cv2.LINE_AA)
-                                                speak_t2 = threading.Thread(target=speak, args=(mifrontplank,))
-                                                speak_t2.start()
-
+                                                keep_pose_sec = 5 
+                                                cv2.putText(image, 'WAIT FOR ' + str(keep_pose_sec) + ' s' , (155,350), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255,0,0), 3, cv2.LINE_AA)
+                                                mifrontplank = "Mantenga la posicion " + str(keep_pose_sec) + " segundos"
+                                                speak(mifrontplank)
                                                 stframe.image(image,channels = 'BGR',use_column_width=True)
-                                                time.sleep(int(st.session_state.seconds_rest_time)+3)#Se añade 3 segundos que se demora en dar la indicación
+                                                time.sleep(keep_pose_sec)
                                                 mffrontplank = "Baje!"
-                                                speak_t2 = threading.Thread(target=speak, args=(mffrontplank,))
-                                                speak_t2.start()
+                                                speak_stage2 = threading.Thread(target=speak, args=(mffrontplank,))
+                                                speak_stage2.start()
                                                 #############################################
                                                 update_dashboard()
                                                 ######################################s######
@@ -3086,8 +3119,7 @@ if authentication_status:
                                         # cv2.waitKey(1)
                                         msucessset = "Felicitaciones, vas por buen camino"
                                         time.sleep(1)
-                                        speak_f_set = threading.Thread(target=speak, args=(msucessset,))
-                                        speak_f_set.start()
+                                        speak(msucessset)
                                         time.sleep(int(st.session_state.seconds_rest_time))
                                     except:
                                         stframe.image(image,channels = 'BGR',use_column_width=True)
@@ -3098,22 +3130,20 @@ if authentication_status:
                         stframe.image(image,channels = 'BGR',use_column_width=True)
                         msucess = "Felicitaciones, bien hecho"
                         time.sleep(1)
-                        speak_f_exercise = threading.Thread(target=speak, args=(msucess,))
-                        speak_f_exercise.start()
+                        speak(msucess)
                         finishexercise = True
                         #Finalización de hilos
-                        speak_t0.join()
-                        speak_t1.join()
-                        speak_t2.join()
-                        speak_t3.join()
-                        speak_t4.join()
-
+                        speak_start_msg.join() # Mensaje de inicio ("Por favor asegurese que su dispositivo pueda ...")
+                        speak_stage1.join() # Stage 1
+                        speak_stage2.join() # Stage 2
+                        speak_stage3.join() # Stage 3
                         if id_exercise == "forward_lunge" or id_exercise == "bird_dog": #Se terminan los hilos de ejercicios de más de 3 poses
-                            speak_t5.join()
-                            speak_t6.join()
-
-                        speak_f_set.join()
-                        speak_f_exercise.join()
+                            speak_stage4.join() # Stage 4
+                            speak_stage5.join() # Stage 5
+                        try:
+                            speak_rec.join() # Recomendaciones según pose y articulaciones
+                        except:
+                            print("No hubieron recomendaciones")
                         time.sleep(5)          
                         cap.release()
                         cv2.destroyAllWindows()
@@ -3202,22 +3232,22 @@ if authentication_status:
                         st.markdown("<br><br>", unsafe_allow_html=True)
                     
 
-                    #st.plotly_chart(dashboard.plot_aprox_gauge_chart(aprox_exercise, "Aproximación Angular %", 0, 16, 32, 48))
+                    st.plotly_chart(dashboard.plot_aprox_gauge_chart(aprox_exercise, "Aproximación Angular %", 0, 16, 32, 48))
                     
-                    #pose_1_sa, pose_2_sa, pose_3_sa = st.columns(3)
-                    #with pose_1_sa:
-                    #    img_path1 = "./02. trainers/" + id_exercise + "/images/" + id_exercise + "1_results.png"
-                    #    id_pose=1
-                    #    img1 = dashboard.add_results_angle_img(img_path1, id_exercise, id_pose, df_results, 
-                    #                                        st.session_state.articulaciones, st.session_state.posfijo)
-                    #    st.image(img1)
+                    pose_1_sa, pose_2_sa, pose_3_sa = st.columns(3)
+                    with pose_1_sa:
+                        img_path1 = "./02. trainers/" + id_exercise + "/images/" + id_exercise + "1_results.png"
+                        id_pose=1
+                        img1 = dashboard.add_results_angle_img(img_path1, id_exercise, id_pose, df_results, 
+                                                            st.session_state.articulaciones, st.session_state.posfijo)
+                        st.image(img1)
                         
-                        #st.image("./02. trainers/" + id_exercise + "/images/" + id_exercise + "1_results.png")
+                        st.image("./02. trainers/" + id_exercise + "/images/" + id_exercise + "1_results.png")
                         
-                    #with pose_2_sa:
-                    #    a=0
-                    #with pose_3_sa:
-                    #    a=0
+                    with pose_2_sa:
+                        a=0
+                    with pose_3_sa:
+                        a=0
                 st.markdown("<hr/>", unsafe_allow_html=True)
 
 
