@@ -1,0 +1,11 @@
+id_exercise|DateTime_Start|DateTime_End|n_poses|n_sets|n_reps|total_poses|seconds_rest_time|Class|Prob|count_pose_g|count_pose|count_rep|count_set|right_elbow_angles_pu|right_hip_angles_pu|right_knee_angles_pu|right_shoulder_angles_cu|right_hip_angles_cu|right_knee_angles_cu|right_shoulder_angles_fp|right_hip_angles_fp|right_ankle_angles_fp|right_hip_angles_fl|right_knee_angles_fl|left_knee_angles_fl|right_shoulder_angles_bd|right_hip_angles_bd|right_knee_angles_bd|left_knee_angles_bd|right_elbow_angles_bd|left_elbow_angles_bd|pose_trainer_cost_min|pose_trainer_cost_max|pose_user_cost
+bird_dog|2023-04-26 23:08:53.705|2023-04-26 23:08:54.750|5|2|1|10|5|bird_dog|31.0|1|1|1|1|||||||||||||95|90|75|66|176|177|4.51|16.49|27.9346
+bird_dog|2023-04-26 23:08:54.750|2023-04-26 23:09:02.132|5|2|1|10|5|bird_dog|30.0|2|2|1|1|||||||||||||168|120|92|155|172|175|14.14|24.96|28.7181
+bird_dog|2023-04-26 23:09:02.132|2023-04-26 23:09:04.913|5|2|1|10|5|bird_dog|30.0|3|3|1|1|||||||||||||73|108|85|77|159|168|4.51|16.49|29.3425
+bird_dog|2023-04-26 23:09:04.913|2023-04-26 23:09:19.053|5|2|1|10|5|bird_dog|30.0|4|4|1|1|||||||||||||77|176|154|65|169|166|3.87|23.97|35.4159
+bird_dog|2023-04-26 23:09:19.053|2023-04-26 23:09:21.655|5|2|1|10|5|bird_dog|29.0|5|5|1|1|||||||||||||88|106|85|72|172|177|4.51|16.49|28.6812
+bird_dog|2023-04-26 23:09:21.655|2023-04-26 23:09:28.168|5|2|1|10|5|bird_dog|30.0|6|1|1|2|||||||||||||91|98|72|64|174|169|4.51|16.49|28.4412
+bird_dog|2023-04-26 23:09:28.168|2023-04-26 23:09:31.643|5|2|1|10|5|bird_dog|28.0|7|2|1|2|||||||||||||159|113|84|157|174|173|14.14|24.96|28.2945
+bird_dog|2023-04-26 23:09:31.643|2023-04-26 23:09:33.408|5|2|1|10|5|bird_dog|29.0|8|3|1|2|||||||||||||82|108|83|132|151|170|4.51|16.49|29.3765
+bird_dog|2023-04-26 23:09:33.408|2023-04-26 23:09:35.444|5|2|1|10|5|bird_dog|30.0|9|4|1|2|||||||||||||74|173|169|79|160|170|3.87|23.97|31.6566
+bird_dog|2023-04-26 23:09:35.444|2023-04-26 23:09:36.155|5|2|1|10|5|bird_dog|37.0|10|5|1|2|||||||||||||71|111|93|166|171|157|4.51|16.49|31.8416

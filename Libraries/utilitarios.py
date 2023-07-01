@@ -47,7 +47,6 @@ def create_df_results():
         })
     return df_results
 
-
 def add_row_df_results(df_results,
                        id_exercise,             #1
                        DateTime_Start,          #2
@@ -134,3 +133,6 @@ def add_row_df_results(df_results,
         pose_user_cost           #35 - float
         ]
     return df_results
+
+def font_size_px(markdown_text, font_size_px):
+    return "<span style='font-size:{}px'>{}</span>".format(font_size_px, markdown_text)

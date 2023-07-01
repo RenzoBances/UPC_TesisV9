@@ -1,0 +1,7 @@
+id_exercise|DateTime_Start|DateTime_End|n_poses|n_sets|n_reps|total_poses|seconds_rest_time|Class|Prob|count_pose_g|count_pose|count_rep|count_set|right_elbow_angles_pu|right_hip_angles_pu|right_knee_angles_pu|right_shoulder_angles_cu|right_hip_angles_cu|right_knee_angles_cu|right_shoulder_angles_fp|right_hip_angles_fp|right_ankle_angles_fp|right_hip_angles_fl|right_knee_angles_fl|left_knee_angles_fl|right_shoulder_angles_bd|right_hip_angles_bd|right_knee_angles_bd|left_knee_angles_bd|right_elbow_angles_bd|left_elbow_angles_bd|pose_trainer_cost_min|pose_trainer_cost_max|pose_user_cost
+push_up|2023-05-18 23:27:51.585|2023-05-18 23:27:58.026|3|2|1|6|5|push_up|29.0|1|1|1|1|155|172|176||||||||||||||||0|999|81.6292
+push_up|2023-05-18 23:27:58.026|2023-05-18 23:28:04.687|3|2|1|6|5|push_up|31.0|2|2|1|1|32|172|178||||||||||||||||0|999|81.0193
+push_up|2023-05-18 23:28:04.687|2023-05-18 23:28:19.275|3|2|1|6|5|push_up|31.0|3|3|1|1|160|173|177||||||||||||||||0|999|61.0491
+push_up|2023-05-18 23:28:19.275|2023-05-18 23:28:29.243|3|2|1|6|5|push_up|31.0|4|1|1|2|163|173|178||||||||||||||||0|999|65.3451
+push_up|2023-05-18 23:28:29.243|2023-05-18 23:28:32.694|3|2|1|6|5|push_up|33.0|5|2|1|2|73|171|178||||||||||||||||0|999|82.8842
+push_up|2023-05-18 23:28:32.694|2023-05-18 23:28:47.490|3|2|1|6|5|push_up|32.0|6|3|1|2|169|176|176||||||||||||||||0|999|63.1453

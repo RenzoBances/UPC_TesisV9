@@ -1,0 +1,6 @@
+id_exercise|DateTime_Start|DateTime_End|n_poses|n_sets|n_reps|total_poses|seconds_rest_time|Class|Prob|count_pose_g|count_pose|count_rep|count_set|right_elbow_angles_pu|right_hip_angles_pu|right_knee_angles_pu|right_shoulder_angles_cu|right_hip_angles_cu|right_knee_angles_cu|right_shoulder_angles_fp|right_hip_angles_fp|right_ankle_angles_fp|right_hip_angles_fl|right_knee_angles_fl|left_knee_angles_fl|right_shoulder_angles_bd|right_hip_angles_bd|right_knee_angles_bd|left_knee_angles_bd|right_elbow_angles_bd|left_elbow_angles_bd|pose_trainer_cost_min|pose_trainer_cost_max|pose_user_cost
+bird_dog|2023-06-05 21:58:47.729|2023-06-05 21:58:48.206|5|1|1|5|5|bird_dog|98.0|1|1|1|1|||||||||||||70|110|47|0|165|177|0.55|20.86|11.8637
+bird_dog|2023-06-05 21:58:48.206|2023-06-05 21:58:51.171|5|1|1|5|5|bird_dog|97.0|2|2|1|1|||||||||||||129|108|48|150|163|153|9.38|31.44|17.158
+bird_dog|2023-06-05 21:58:51.171|2023-06-05 21:58:52.769|5|1|1|5|5|bird_dog|97.0|3|3|1|1|||||||||||||55|107|44|81|162|167|0.55|20.86|12.3647
+bird_dog|2023-06-05 21:58:52.769|2023-06-05 21:59:15.214|5|1|1|5|5|bird_dog|98.0|4|4|1|1|||||||||||||86|168|162|64|169|173|10.06|22.18|10.1449
+bird_dog|2023-06-05 21:59:15.214|2023-06-05 21:59:20.128|5|1|1|5|5|bird_dog|98.0|5|5|1|1|||||||||||||81|97|57|57|175|172|0.55|20.86|11.054

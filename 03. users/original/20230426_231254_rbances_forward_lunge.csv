@@ -1,0 +1,11 @@
+id_exercise|DateTime_Start|DateTime_End|n_poses|n_sets|n_reps|total_poses|seconds_rest_time|Class|Prob|count_pose_g|count_pose|count_rep|count_set|right_elbow_angles_pu|right_hip_angles_pu|right_knee_angles_pu|right_shoulder_angles_cu|right_hip_angles_cu|right_knee_angles_cu|right_shoulder_angles_fp|right_hip_angles_fp|right_ankle_angles_fp|right_hip_angles_fl|right_knee_angles_fl|left_knee_angles_fl|right_shoulder_angles_bd|right_hip_angles_bd|right_knee_angles_bd|left_knee_angles_bd|right_elbow_angles_bd|left_elbow_angles_bd|pose_trainer_cost_min|pose_trainer_cost_max|pose_user_cost
+forward_lunge|2023-04-26 23:11:42.783|2023-04-26 23:11:43.365|5|2|1|10|5|forward_lunge|57.0|1|1|1|1||||||||||163|162|165|||||||2.32|21.46|28.0549
+forward_lunge|2023-04-26 23:11:43.365|2023-04-26 23:11:47.202|5|2|1|10|5|forward_lunge|36.0|2|2|1|1||||||||||174|103|66|||||||17.7|28.75|20.5354
+forward_lunge|2023-04-26 23:11:47.202|2023-04-26 23:11:49.957|5|2|1|10|5|forward_lunge|56.0|3|3|1|1||||||||||179|158|176|||||||2.32|21.46|27.4218
+forward_lunge|2023-04-26 23:11:49.957|2023-04-26 23:11:53.212|5|2|1|10|5|forward_lunge|35.0|4|4|1|1||||||||||81|76|99|||||||20.55|23.7|22.5446
+forward_lunge|2023-04-26 23:11:53.212|2023-04-26 23:11:55.518|5|2|1|10|5|forward_lunge|47.0|5|5|1|1||||||||||160|146|141|||||||2.32|21.46|28.9597
+forward_lunge|2023-04-26 23:11:55.518|2023-04-26 23:12:02.038|5|2|1|10|5|forward_lunge|51.0|6|1|1|2||||||||||162|164|144|||||||2.32|21.46|27.909
+forward_lunge|2023-04-26 23:12:02.038|2023-04-26 23:12:15.426|5|2|1|10|5|forward_lunge|36.0|7|2|1|2||||||||||173|95|79|||||||17.7|28.75|21.5757
+forward_lunge|2023-04-26 23:12:15.426|2023-04-26 23:12:17.952|5|2|1|10|5|forward_lunge|47.0|8|3|1|2||||||||||173|152|166|||||||2.32|21.46|28.6581
+forward_lunge|2023-04-26 23:12:17.952|2023-04-26 23:12:34.276|5|2|1|10|5|forward_lunge|33.0|9|4|1|2||||||||||81|84|85|||||||20.55|23.7|21.6993
+forward_lunge|2023-04-26 23:12:34.276|2023-04-26 23:12:42.265|5|2|1|10|5|forward_lunge|52.0|10|5|1|2||||||||||169|159|163|||||||2.32|21.46|27.5664

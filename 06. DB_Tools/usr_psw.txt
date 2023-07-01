@@ -1,0 +1,9 @@
+https://deta.space/collections/e08e9tjgqr4
+database: deta-base
+table: users_db
+
+user / password:
+ccabrer / cc123
+layamam / la123
+malcant / ma123
+rbances / rb123

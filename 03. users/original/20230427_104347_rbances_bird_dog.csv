@@ -1,0 +1,11 @@
+id_exercise|DateTime_Start|DateTime_End|n_poses|n_sets|n_reps|total_poses|seconds_rest_time|Class|Prob|count_pose_g|count_pose|count_rep|count_set|right_elbow_angles_pu|right_hip_angles_pu|right_knee_angles_pu|right_shoulder_angles_cu|right_hip_angles_cu|right_knee_angles_cu|right_shoulder_angles_fp|right_hip_angles_fp|right_ankle_angles_fp|right_hip_angles_fl|right_knee_angles_fl|left_knee_angles_fl|right_shoulder_angles_bd|right_hip_angles_bd|right_knee_angles_bd|left_knee_angles_bd|right_elbow_angles_bd|left_elbow_angles_bd|pose_trainer_cost_min|pose_trainer_cost_max|pose_user_cost
+bird_dog|2023-04-27 10:42:31.936|2023-04-27 10:42:32.983|5|2|1|10|5|bird_dog|33.0|1|1|1|1|||||||||||||83|101|75|78|171|175|4.51|16.49|26.7988
+bird_dog|2023-04-27 10:42:32.983|2023-04-27 10:42:40.935|5|2|1|10|5|bird_dog|28.0|2|2|1|1|||||||||||||158|109|80|159|170|170|14.14|24.96|24.1087
+bird_dog|2023-04-27 10:42:40.935|2023-04-27 10:42:43.755|5|2|1|10|5|bird_dog|33.0|3|3|1|1|||||||||||||71|108|83|111|168|173|4.51|16.49|26.6036
+bird_dog|2023-04-27 10:42:43.755|2023-04-27 10:43:00.826|5|2|1|10|5|bird_dog|33.0|4|4|1|1|||||||||||||79|139|142|111|170|161|3.87|23.97|25.8505
+bird_dog|2023-04-27 10:43:00.826|2023-04-27 10:43:02.990|5|2|1|10|5|bird_dog|33.0|5|5|1|1|||||||||||||70|114|86|146|155|140|4.51|16.49|28.1375
+bird_dog|2023-04-27 10:43:02.990|2023-04-27 10:43:09.607|5|2|1|10|5|bird_dog|42.0|6|1|1|2|||||||||||||90|108|82|76|179|146|4.51|16.49|24.9441
+bird_dog|2023-04-27 10:43:09.607|2023-04-27 10:43:15.715|5|2|1|10|5|bird_dog|30.0|7|2|1|2|||||||||||||158|115|88|156|171|173|14.14|24.96|23.8444
+bird_dog|2023-04-27 10:43:15.715|2023-04-27 10:43:18.320|5|2|1|10|5|bird_dog|30.0|8|3|1|2|||||||||||||58|108|74|74|154|178|4.51|16.49|25.535
+bird_dog|2023-04-27 10:43:18.320|2023-04-27 10:43:32.851|5|2|1|10|5|bird_dog|33.0|9|4|1|2|||||||||||||68|168|163|87|165|165|3.87|23.97|26.022
+bird_dog|2023-04-27 10:43:32.851|2023-04-27 10:43:34.970|5|2|1|10|5|bird_dog|34.0|10|5|1|2|||||||||||||69|113|85|154|161|130|4.51|16.49|27.8256

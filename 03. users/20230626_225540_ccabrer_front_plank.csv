@@ -1,0 +1,7 @@
+id_exercise|DateTime_Start|DateTime_End|n_poses|n_sets|n_reps|total_poses|seconds_rest_time|Class|Prob|count_pose_g|count_pose|count_rep|count_set|right_elbow_angles_pu|right_hip_angles_pu|right_knee_angles_pu|right_shoulder_angles_cu|right_hip_angles_cu|right_knee_angles_cu|right_shoulder_angles_fp|right_hip_angles_fp|right_ankle_angles_fp|right_hip_angles_fl|right_knee_angles_fl|left_knee_angles_fl|right_shoulder_angles_bd|right_hip_angles_bd|right_knee_angles_bd|left_knee_angles_bd|right_elbow_angles_bd|left_elbow_angles_bd|pose_trainer_cost_min|pose_trainer_cost_max|pose_user_cost
+front_plank|2023-06-26 22:54:36.378|2023-06-26 22:54:37.498|3|2|1|6|5|front_plank|54.0|1|1|1|1|||||||59|162|137||||||||||0.0|14.19|8.4455
+front_plank|2023-06-26 22:54:37.498|2023-06-26 22:54:54.245|3|2|1|6|5|front_plank|50.0|2|2|1|1|||||||92|159|102||||||||||0.01|13.97|10.3466
+front_plank|2023-06-26 22:54:54.245|2023-06-26 22:54:59.375|3|2|1|6|5|front_plank|47.0|3|3|1|1|||||||76|166|148||||||||||0.0|14.19|9.156
+front_plank|2023-06-26 22:54:59.375|2023-06-26 22:55:10.056|3|2|1|6|5|front_plank|50.0|4|1|1|2|||||||73|163|140||||||||||0.0|14.19|8.9755
+front_plank|2023-06-26 22:55:10.056|2023-06-26 22:55:25.921|3|2|1|6|5|front_plank|66.0|5|2|1|2|||||||78|176|102||||||||||0.01|13.97|9.1171
+front_plank|2023-06-26 22:55:25.921|2023-06-26 22:55:30.089|3|2|1|6|5|front_plank|56.0|6|3|1|2|||||||74|168|149||||||||||0.0|14.19|9.632
